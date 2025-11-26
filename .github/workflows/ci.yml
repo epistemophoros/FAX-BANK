@@ -60,30 +60,15 @@ jobs:
       - name: Check and create PR
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.v.outputs.ver }}
         run: |
-          echo "Checking for existing PR from development to main..."
-          
-          # List all PRs
-          gh pr list --head development --base main --state open
-          
-          # Get PR number if exists
+          echo "Checking for existing PR..."
           PR_NUM=$(gh pr list --head development --base main --state open --json number --jq '.[0].number // empty')
-          
-          echo "Found PR number: '$PR_NUM'"
-          
+          echo "Found: '$PR_NUM'"
           if [ -n "$PR_NUM" ]; then
-            echo "✅ PR #$PR_NUM already exists"
-            gh pr view "$PR_NUM" --web || true
+            echo "PR #$PR_NUM exists"
           else
-            echo "Creating new PR..."
-            gh pr create \
-              --head development \
-              --base main \
-              --title "Release v${{ steps.v.outputs.ver }}" \
-              --body "## Merge development → main
-
-**Version:** v${{ steps.v.outputs.ver }}
-
-All CI checks passed ✅"
-            echo "✅ PR created successfully"
+            echo "Creating PR..."
+            gh pr create --head development --base main --title "Release v${VERSION}" --body "Merge development to main for v${VERSION}"
+            echo "PR created"
           fi
