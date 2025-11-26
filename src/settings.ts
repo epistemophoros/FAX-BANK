@@ -2,7 +2,7 @@
  * FAX-BANK Settings
  */
 
-import { MODULE_ID, MODULE_NAME, SETTINGS } from "./constants";
+import { MODULE_ID, SETTINGS } from "./constants";
 import { log } from "./utils/logger";
 
 // Type for game object with settings

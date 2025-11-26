@@ -13,7 +13,7 @@ import { log } from "./utils/logger";
 
 // Module instances - persist across renders
 let adminPanel: AdminPanel | null = null;
-let bankDialogs: Map<string, BankDialog> = new Map();
+const bankDialogs: Map<string, BankDialog> = new Map();
 
 // Type definitions
 type GameType = {
@@ -31,6 +31,25 @@ type Notifications = {
 type ChatMessage = {
   content: string;
   user?: { id?: string };
+};
+
+type SceneControlTool = {
+  name: string;
+  title: string;
+  icon: string;
+  button: boolean;
+  onClick: () => void;
+};
+
+type SceneControl = {
+  name: string;
+  tools: SceneControlTool[];
+};
+
+type CanvasType = {
+  tokens?: {
+    controlled?: Array<{ actor?: { id?: string; name?: string } }>;
+  };
 };
 
 /**
@@ -81,47 +100,46 @@ Hooks.once("ready", handleReady);
 /**
  * Add scene control buttons (left sidebar)
  */
-Hooks.on(
-  "getSceneControlButtons",
-  (controls: Array<{ name: string; tools: Array<{ name: string; title: string; icon: string; button: boolean; onClick: () => void }> }>) => {
-    const gameObj = game as GameType | undefined;
+Hooks.on("getSceneControlButtons", (controls: SceneControl[]) => {
+  const gameObj = game as GameType | undefined;
 
-    // Find the token controls group
-    const tokenControls = controls.find((c) => c.name === "token");
-    if (!tokenControls) return;
+  // Find the token controls group
+  const tokenControls = controls.find((c) => c.name === "token");
+  if (!tokenControls) return;
 
-    // Add Bank button for all users
+  // Add Bank button for all users
+  tokenControls.tools.push({
+    name: "fax-bank",
+    title: "FAX-BANK",
+    icon: "fas fa-university",
+    button: true,
+    onClick: () => {
+      if (gameObj?.user?.isGM) {
+        // GM opens admin panel
+        openAdminPanel();
+      } else {
+        // Players see instruction
+        const notifications = ui.notifications as Notifications | undefined;
+        notifications?.info(
+          "Select a token and use the Token HUD bank button, or use /bank command"
+        );
+      }
+    },
+  });
+
+  // Add Admin Panel button for GMs
+  if (gameObj?.user?.isGM) {
     tokenControls.tools.push({
-      name: "fax-bank",
-      title: "FAX-BANK",
-      icon: "fas fa-university",
+      name: "fax-bank-admin",
+      title: "FAX-BANK Admin Panel",
+      icon: "fas fa-cogs",
       button: true,
       onClick: () => {
-        if (gameObj?.user?.isGM) {
-          // GM opens admin panel
-          openAdminPanel();
-        } else {
-          // Players see instruction
-          const notifications = ui.notifications as Notifications | undefined;
-          notifications?.info("Select a token and use the Token HUD bank button, or use /bank command");
-        }
+        openAdminPanel();
       },
     });
-
-    // Add Admin Panel button for GMs
-    if (gameObj?.user?.isGM) {
-      tokenControls.tools.push({
-        name: "fax-bank-admin",
-        title: "FAX-BANK Admin Panel",
-        icon: "fas fa-cogs",
-        button: true,
-        onClick: () => {
-          openAdminPanel();
-        },
-      });
-    }
   }
-);
+});
 
 /**
  * Add button to Token HUD for opening bank dialog
@@ -193,10 +211,11 @@ Hooks.on("chatMessage", (_chatLog: unknown, message: string, _chatData: ChatMess
 
   if (command.startsWith("/bank open")) {
     // Try to open bank for controlled token
-    const controlled = canvas?.tokens?.controlled;
+    const canvasObj = canvas as CanvasType | undefined;
+    const controlled = canvasObj?.tokens?.controlled;
     if (controlled && controlled.length > 0) {
-      const token = controlled[0] as { actor?: { id?: string; name?: string } };
-      if (token.actor?.id) {
+      const token = controlled[0];
+      if (token?.actor?.id) {
         openBankDialogForActor(token.actor.id, token.actor.name ?? "Unknown");
       }
     } else {
@@ -216,13 +235,13 @@ const showBankHelp = (): void => {
   const gameObj = game as GameType | undefined;
   const isGM = gameObj?.user?.isGM ?? false;
 
-  let helpText = `
+  const helpText = `
     <div class="fax-bank-help">
       <h3>🏦 FAX-BANK Commands</h3>
       <ul>
         <li><code>/bank</code> - Show this help</li>
         <li><code>/bank open</code> - Open bank for selected token</li>
-        ${isGM ? '<li><code>/bank admin</code> - Open Admin Panel (GM only)</li>' : ""}
+        ${isGM ? "<li><code>/bank admin</code> - Open Admin Panel (GM only)</li>" : ""}
       </ul>
       <h4>Other Ways to Access:</h4>
       <ul>
@@ -233,7 +252,8 @@ const showBankHelp = (): void => {
     </div>
   `;
 
-  // @ts-expect-error - ChatMessage.create exists at runtime
+  // @ts-expect-error - ChatMessage.create exists at runtime in Foundry VTT
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
   ChatMessage.create({
     content: helpText,
     whisper: [gameObj?.user?.id ?? ""],
