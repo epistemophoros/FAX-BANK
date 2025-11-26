@@ -40,7 +40,15 @@ jobs:
           cache: "npm"
       - run: npm ci
       - run: npm run lint
-      - run: npm run format:check
+      - name: Format Check
+        run: |
+          npm run format:check || {
+            echo "::group::Prettier wants these changes:"
+            npx prettier --write "src/**/*.{ts,js,json,css}"
+            git diff
+            echo "::endgroup::"
+            exit 1
+          }
       - run: npm run typecheck
       - run: npm run test
 
