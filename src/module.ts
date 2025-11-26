@@ -4,6 +4,12 @@ import { registerSettings } from "./settings";
 import { ExampleApplication } from "./applications/ExampleApplication";
 import { log } from "./utils/logger";
 
+// Type for game object
+type GameType = {
+  user?: { isGM?: boolean };
+  modules?: { get: (id: string) => { api?: unknown } | undefined };
+};
+
 /**
  * Initialize the module when Foundry is ready
  */
@@ -18,8 +24,8 @@ const handleInit = (): void => {
 const handleReady = (): void => {
   log("Module ready!");
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  if (game instanceof Game && (game.user as { isGM?: boolean })?.isGM) {
+  const gameObj = game as GameType | undefined;
+  if (gameObj?.user?.isGM) {
     log("User is GM, additional features enabled");
   }
 };
@@ -43,9 +49,9 @@ Hooks.once("ready", () => {
     name: MODULE_NAME,
   };
 
-  if (game instanceof Game) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-call
-    const module = (game.modules as any).get(MODULE_ID) as { api?: typeof moduleApi } | undefined;
+  const gameObj = game as GameType | undefined;
+  if (gameObj?.modules) {
+    const module = gameObj.modules.get(MODULE_ID);
     if (module) {
       module.api = moduleApi;
     }

@@ -5,10 +5,12 @@ import { MODULE_ID, MODULE_NAME } from "../constants";
  */
 type LogLevel = "log" | "warn" | "error" | "debug";
 
-// Type for settings API
-interface SettingsAPI {
-  get: (module: string, key: string) => unknown;
-}
+// Type for game object with settings
+type GameWithSettings = {
+  settings?: {
+    get: (module: string, key: string) => unknown;
+  };
+};
 
 /**
  * Format a log message with module prefix
@@ -23,11 +25,11 @@ const formatMessage = (message: string): string => {
  */
 const isDebugEnabled = (): boolean => {
   try {
-    if (!(game instanceof Game) || !game.settings) {
+    const gameObj = game as GameWithSettings | undefined;
+    if (!gameObj?.settings) {
       return false;
     }
-    const settings = game.settings as unknown as SettingsAPI;
-    return Boolean(settings.get(MODULE_ID, "debugMode"));
+    return Boolean(gameObj.settings.get(MODULE_ID, "debugMode"));
   } catch {
     return false;
   }
