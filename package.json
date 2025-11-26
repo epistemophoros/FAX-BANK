@@ -1,6 +1,6 @@
 {
   "name": "foundry-example-module",
-  "version": "1.0.0",
+  "version": "1.0.00",
   "description": "An example Foundry VTT module with CI/CD",
   "type": "module",
   "scripts": {
