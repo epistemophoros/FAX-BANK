@@ -12,105 +12,63 @@ permissions:
 
 jobs:
   build:
-    name: Build & Test
+    name: Build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: "npm"
+      - run: npm ci
+      - run: npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
 
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
       - run: npm ci
       - run: npm run lint
       - run: npm run format:check
       - run: npm run typecheck
       - run: npm run test
-      - run: npm run build
-
-      - name: Verify build
-        run: test -f dist/scripts/module.js
 
   create-pr:
-    name: Create PR
+    name: PR
     runs-on: ubuntu-latest
-    needs: build
+    needs: test
     if: github.ref == 'refs/heads/development' && github.event_name == 'push'
     steps:
       - uses: actions/checkout@v4
-
-      - name: Get version
-        id: v
-        run: echo "ver=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
-
-      - name: Create or update PR
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          PR=$(gh pr list --head development --base main --json number -q '.[0].number' || echo "")
-          if [ -n "$PR" ]; then
-            echo "PR #$PR exists"
-          else
-            gh pr create --head development --base main \
-              --title "Release v${{ steps.v.outputs.ver }}" \
-              --body "Merge development into main for release v${{ steps.v.outputs.ver }}"
-          fi
-
-  release:
-    name: Release
-    runs-on: ubuntu-latest
-    needs: build
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
         with:
-          node-version: "20"
-          cache: "npm"
-
-      - run: npm ci
-      - run: npm run build
+          fetch-depth: 0
 
       - name: Get version
         id: v
         run: echo "ver=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
 
-      - name: Check release exists
-        id: check
+      - name: Check and create PR
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.v.outputs.ver }}
         run: |
-          if gh release view "v${{ steps.v.outputs.ver }}" &>/dev/null; then
-            echo "exists=true" >> $GITHUB_OUTPUT
+          echo "Checking for existing PR..."
+          PR_NUM=$(gh pr list --head development --base main --state open --json number --jq '.[0].number // empty')
+          echo "Found: '$PR_NUM'"
+          if [ -n "$PR_NUM" ]; then
+            echo "PR #$PR_NUM exists"
           else
-            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "Creating PR..."
+            gh pr create --head development --base main --title "Release v${VERSION}" --body "Merge development to main for v${VERSION}"
+            echo "PR created"
           fi
-
-      - name: Package module
-        if: steps.check.outputs.exists == 'false'
-        run: |
-          mkdir -p release/example-module
-          cp -r dist/* release/example-module/
-          cp module.json release/example-module/
-          cp -r templates languages release/example-module/
-          cp README.md LICENSE CHANGELOG.md release/example-module/ 2>/dev/null || true
-          VERSION="${{ steps.v.outputs.ver }}"
-          sed -i "s|#{VERSION}#|$VERSION|g" release/example-module/module.json
-          sed -i "s|#{MANIFEST_URL}#|https://github.com/${{ github.repository }}/releases/latest/download/module.json|g" release/example-module/module.json
-          sed -i "s|#{DOWNLOAD_URL}#|https://github.com/${{ github.repository }}/releases/download/v$VERSION/module.zip|g" release/example-module/module.json
-          cd release && zip -r ../module.zip example-module
-          cp example-module/module.json ../module-release.json
-
-      - name: Create release
-        if: steps.check.outputs.exists == 'false'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release create "v${{ steps.v.outputs.ver }}" \
-            --title "v${{ steps.v.outputs.ver }}" \
-            --notes "Manifest: https://github.com/${{ github.repository }}/releases/latest/download/module.json" \
-            module.zip module-release.json
