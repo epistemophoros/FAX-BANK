@@ -36,7 +36,7 @@ Hooks.once("ready", handleReady);
 Hooks.once("ready", () => {
   const moduleApi = {
     openExampleApp: (): ExampleApplication => {
-      return new ExampleApplication().render(true) as ExampleApplication;
+      return new ExampleApplication().render(true) as unknown as ExampleApplication;
     },
     version: "1.0.0",
     id: MODULE_ID,

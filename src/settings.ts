@@ -12,7 +12,7 @@ export const registerSettings = (): void => {
   }
 
   // Enable Feature Toggle
-  game.settings.register(MODULE_ID, SETTINGS.ENABLE_FEATURE, {
+  (game.settings as ClientSettings).register(MODULE_ID, SETTINGS.ENABLE_FEATURE, {
     name: `${MODULE_NAME}: Enable Feature`,
     hint: "Toggle the main feature of this module on or off.",
     scope: "world",
@@ -23,7 +23,7 @@ export const registerSettings = (): void => {
   });
 
   // Debug Mode Toggle
-  game.settings.register(MODULE_ID, SETTINGS.DEBUG_MODE, {
+  (game.settings as ClientSettings).register(MODULE_ID, SETTINGS.DEBUG_MODE, {
     name: `${MODULE_NAME}: Debug Mode`,
     hint: "Enable debug logging for troubleshooting.",
     scope: "client",
@@ -34,7 +34,7 @@ export const registerSettings = (): void => {
   });
 
   // Custom Message Setting
-  game.settings.register(MODULE_ID, SETTINGS.CUSTOM_MESSAGE, {
+  (game.settings as ClientSettings).register(MODULE_ID, SETTINGS.CUSTOM_MESSAGE, {
     name: `${MODULE_NAME}: Custom Message`,
     hint: "Set a custom message to display.",
     scope: "world",
@@ -54,7 +54,7 @@ export const getSetting = <T>(key: string): T => {
   if (!(game instanceof Game) || !game.settings) {
     return "" as T;
   }
-  return game.settings.get(MODULE_ID, key) as T;
+  return (game.settings as ClientSettings).get(MODULE_ID, key) as T;
 };
 
 /**
@@ -64,7 +64,7 @@ export const setSetting = async <T>(key: string, value: T): Promise<T> => {
   if (!(game instanceof Game) || !game.settings) {
     return value;
   }
-  return (await game.settings.set(MODULE_ID, key, value)) as T;
+  return (await (game.settings as ClientSettings).set(MODULE_ID, key, value)) as T;
 };
 
 /**

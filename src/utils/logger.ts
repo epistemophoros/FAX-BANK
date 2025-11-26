@@ -21,7 +21,7 @@ const isDebugEnabled = (): boolean => {
     if (!(game instanceof Game) || !game.settings) {
       return false;
     }
-    return (game.settings.get(MODULE_ID, "debugMode") as boolean) ?? false;
+    return ((game.settings as ClientSettings).get(MODULE_ID, "debugMode") as boolean) ?? false;
   } catch {
     return false;
   }

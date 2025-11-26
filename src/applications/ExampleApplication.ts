@@ -16,7 +16,7 @@ interface ExampleAppData {
  * Example Application window for the module
  */
 export class ExampleApplication extends Application {
-  static override get defaultOptions(): ApplicationOptions {
+  static override get defaultOptions(): typeof Application.defaultOptions {
     return foundry.utils.mergeObject(super.defaultOptions, {
       id: `${MODULE_ID}-app`,
       title: MODULE_NAME,
@@ -50,10 +50,10 @@ export class ExampleApplication extends Application {
     super.activateListeners(html);
 
     // Handle refresh button click
-    html.find("[data-action=\"refresh\"]").on("click", this.handleRefresh.bind(this));
+    html.find('[data-action="refresh"]').on("click", this.handleRefresh.bind(this));
 
     // Handle close button click
-    html.find("[data-action=\"close\"]").on("click", this.handleClose.bind(this));
+    html.find('[data-action="close"]').on("click", this.handleClose.bind(this));
 
     // Add keyboard accessibility
     html.find("[data-action]").on("keydown", this.handleKeyDown.bind(this));
