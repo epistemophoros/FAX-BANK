@@ -86,9 +86,11 @@ jobs:
           
           # Check if this version was already released
           if gh release view "v$CURRENT" &>/dev/null 2>&1; then
-            # Bump patch version
+            # Bump patch version with zero padding
             IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
-            PATCH=$((PATCH + 1))
+            # Remove leading zeros for arithmetic, then re-pad
+            PATCH=$((10#$PATCH + 1))
+            PATCH=$(printf "%02d" $PATCH)
             NEW="$MAJOR.$MINOR.$PATCH"
             echo "Bumping to: $NEW"
           else
