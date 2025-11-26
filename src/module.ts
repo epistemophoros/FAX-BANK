@@ -44,7 +44,7 @@ Hooks.once("ready", () => {
   };
 
   if (game instanceof Game) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-call
     const module = (game.modules as any).get(MODULE_ID) as { api?: typeof moduleApi } | undefined;
     if (module) {
       module.api = moduleApi;
