@@ -11,7 +11,7 @@ import { AdminPanel } from "./applications/AdminPanel";
 import { BankDialog, openBankDialog } from "./applications/BankDialog";
 import { log } from "./utils/logger";
 
-// Module instances - persist across renders
+// Module instances
 let adminPanel: AdminPanel | null = null;
 const bankDialogs: Map<string, BankDialog> = new Map();
 
@@ -35,7 +35,7 @@ type CanvasType = {
 };
 
 /**
- * Initialize module - register settings and data store
+ * Initialize module
  */
 const handleInit = (): void => {
   log("Initializing FAX-BANK...");
@@ -57,132 +57,83 @@ const handleInit = (): void => {
 };
 
 /**
- * Module ready - set up hooks and UI, expose console commands
+ * Module ready
  */
 const handleReady = (): void => {
   log("FAX-BANK ready!");
 
-  const gameObj = game as GameType | undefined;
-  const notifications = ui.notifications as Notifications | undefined;
-
-  // Expose global console commands
+  // Expose console commands
   // @ts-expect-error - Adding to window for console access
   window.FAXBANK = {
-    openAdmin: () => {
+    openAdmin: (): void => {
       openAdminPanel();
-      log("Admin Panel opened via console");
     },
-    openBank: (actorId?: string, actorName?: string) => {
+    openBank: (actorId?: string, actorName?: string): void => {
       if (actorId) {
         openBankDialogForActor(actorId, actorName ?? "Unknown");
       } else {
-        // Try to get selected token
         const canvasObj = canvas as CanvasType | undefined;
         const controlled = canvasObj?.tokens?.controlled;
-        if (controlled && controlled.length > 0 && controlled[0]?.actor?.id) {
-          openBankDialogForActor(
-            controlled[0].actor.id,
-            controlled[0].actor.name ?? "Unknown"
-          );
+        if (controlled?.[0]?.actor?.id) {
+          openBankDialogForActor(controlled[0].actor.id, controlled[0].actor.name ?? "Unknown");
         } else {
-          log("No actor specified. Usage: FAXBANK.openBank('actorId', 'name') or select a token");
+          log("Select a token or use FAXBANK.openBank('actorId', 'name')");
         }
       }
     },
-    help: () => {
-      log("=== FAX-BANK Console Commands ===");
-      log("FAXBANK.openAdmin() - Open the Admin Panel (GM only)");
-      log("FAXBANK.openBank() - Open bank for selected token");
-      log("FAXBANK.openBank('actorId', 'name') - Open bank for specific actor");
-      log("FAXBANK.help() - Show this help");
+    help: (): void => {
+      log("FAXBANK.openAdmin() - Open Admin Panel");
+      log("FAXBANK.openBank() - Open Bank for selected token");
     },
   };
 
-  if (gameObj?.user?.isGM) {
-    log("GM detected - Admin features enabled");
-    notifications?.info("FAX-BANK loaded! Use FAXBANK.openAdmin() in console or check Settings");
-  } else {
-    notifications?.info("FAX-BANK loaded! Use Token HUD bank button or FAXBANK.openBank() in console");
-  }
-
-  log("Console commands available: FAXBANK.openAdmin(), FAXBANK.openBank(), FAXBANK.help()");
+  log("Console: FAXBANK.openAdmin(), FAXBANK.openBank()");
 };
 
-/**
- * Register hooks
- */
 Hooks.once("init", handleInit);
 Hooks.once("ready", handleReady);
 
 /**
- * Add scene control buttons (Token Controls in left sidebar)
+ * Add Bank button to Token Controls (left sidebar)
  */
 Hooks.on("getSceneControlButtons", (controls: SceneControl[]) => {
-  const gameObj = game as GameType | undefined;
-
-  // Find the token controls group
   const tokenControls = controls.find((c: SceneControl) => c.name === "token");
-  if (!tokenControls) {
-    log("Token controls not found, cannot add bank button");
-    return;
-  }
+  if (!tokenControls) return;
 
-  log("Adding FAX-BANK buttons to Token Controls");
-
-  // Add Bank button for all users
+  // Bank button - opens bank for selected token
   tokenControls.tools.push({
     name: "fax-bank",
     title: "FAX-BANK - Open Bank",
     icon: "fas fa-university",
     visible: true,
-    onClick: () => {
+    button: true,
+    onClick: (): void => {
       const canvasObj = canvas as CanvasType | undefined;
       const controlled = canvasObj?.tokens?.controlled;
-      if (controlled && controlled.length > 0 && controlled[0]?.actor?.id) {
-        openBankDialogForActor(
-          controlled[0].actor.id,
-          controlled[0].actor.name ?? "Unknown"
-        );
+      if (controlled?.[0]?.actor?.id) {
+        openBankDialogForActor(controlled[0].actor.id, controlled[0].actor.name ?? "Unknown");
       } else {
         const notifications = ui.notifications as Notifications | undefined;
-        notifications?.warn("Select a token first to open their bank");
+        notifications?.warn("Select a token first");
       }
     },
-    button: true,
   } as SceneControlTool);
-
-  // Add Admin Panel button for GMs only
-  if (gameObj?.user?.isGM) {
-    tokenControls.tools.push({
-      name: "fax-bank-admin",
-      title: "FAX-BANK - Admin Panel",
-      icon: "fas fa-cogs",
-      visible: true,
-      onClick: () => {
-        openAdminPanel();
-      },
-      button: true,
-    } as SceneControlTool);
-  }
 });
 
 /**
- * Add button to Token HUD for opening bank dialog
+ * Token HUD bank button
  */
 Hooks.on("renderTokenHUD", (_hud: TokenHUD, html: JQuery, data: { actorId?: string }) => {
-  const showOnHUD = getSetting<boolean>(SETTINGS.ENABLE_FEATURE);
-  if (!showOnHUD) return;
-
-  const actorId = data.actorId;
-  if (!actorId) return;
+  if (!getSetting<boolean>(SETTINGS.ENABLE_FEATURE)) return;
+  if (!data.actorId) return;
 
   const gameObj = game as GameType | undefined;
-  const actor = gameObj?.actors?.get(actorId);
+  const actor = gameObj?.actors?.get(data.actorId);
   const actorName = actor?.name ?? "Unknown";
+  const actorId = data.actorId;
 
-  // Create bank button
   const button = $(`
-    <div class="control-icon fax-bank-hud" title="Open Bank" data-action="open-bank">
+    <div class="control-icon fax-bank-hud" title="Open Bank">
       <i class="fas fa-university"></i>
     </div>
   `);
@@ -193,71 +144,28 @@ Hooks.on("renderTokenHUD", (_hud: TokenHUD, html: JQuery, data: { actorId?: stri
     openBankDialogForActor(actorId, actorName);
   });
 
-  // Add to right column of HUD
   html.find(".col.right").append(button);
 });
 
 /**
- * Handle canvas click with shift key to open bank dialog
+ * Shift+Click on canvas
  */
 Hooks.on("canvasReady", () => {
-  const canvasElement = document.getElementById("board");
-  if (!canvasElement) return;
+  document.getElementById("board")?.addEventListener("click", (event: MouseEvent) => {
+    if (!getSetting<boolean>(SETTINGS.DEBUG_MODE) || !event.shiftKey) return;
 
-  canvasElement.addEventListener("click", (event: MouseEvent) => {
-    const enableShiftClick = getSetting<boolean>(SETTINGS.DEBUG_MODE);
-    if (!enableShiftClick || !event.shiftKey) return;
-
-    // Get controlled tokens
     const canvasObj = canvas as CanvasType | undefined;
     const controlled = canvasObj?.tokens?.controlled;
-    if (controlled && controlled.length > 0 && controlled[0]?.actor?.id) {
-      openBankDialogForActor(
-        controlled[0].actor.id,
-        controlled[0].actor.name ?? "Unknown"
-      );
+    if (controlled?.[0]?.actor?.id) {
+      openBankDialogForActor(controlled[0].actor.id, controlled[0].actor.name ?? "Unknown");
     }
   });
 });
 
 /**
- * Also try the controlToken hook for shift+click
+ * Open Admin Panel
  */
-Hooks.on(
-  "controlToken",
-  (token: { actor?: { id?: string; name?: string } }, controlled: boolean) => {
-    if (!controlled) return;
-
-    // Check if shift is held (we'll check on next click)
-    const enableShiftClick = getSetting<boolean>(SETTINGS.DEBUG_MODE);
-    if (!enableShiftClick) return;
-
-    // Store token info for shift+click handler
-    const actorId = token.actor?.id;
-    const actorName = token.actor?.name ?? "Unknown";
-
-    if (actorId) {
-      // Add one-time keydown listener for shift
-      const handleKeyDown = (e: KeyboardEvent) => {
-        if (e.key === "Shift") {
-          openBankDialogForActor(actorId, actorName);
-          document.removeEventListener("keydown", handleKeyDown);
-        }
-      };
-
-      // Remove after 2 seconds if not used
-      document.addEventListener("keydown", handleKeyDown);
-      setTimeout(() => {
-        document.removeEventListener("keydown", handleKeyDown);
-      }, 2000);
-    }
-  }
-);
-
-/**
- * Open Admin Panel (creates new instance if needed)
- */
-const openAdminPanel = (): AdminPanel => {
+export const openAdminPanel = (): AdminPanel => {
   if (!adminPanel) {
     adminPanel = new AdminPanel();
   }
@@ -266,7 +174,7 @@ const openAdminPanel = (): AdminPanel => {
 };
 
 /**
- * Open Bank Dialog for an actor (reuses existing if open)
+ * Open Bank Dialog for actor
  */
 const openBankDialogForActor = (actorId: string, actorName: string): BankDialog => {
   let dialog = bankDialogs.get(actorId);
@@ -279,7 +187,7 @@ const openBankDialogForActor = (actorId: string, actorName: string): BankDialog 
 };
 
 /**
- * Module API - exposed for macros and other modules
+ * Module API
  */
 const moduleApi = {
   openAdminPanel,
@@ -291,20 +199,15 @@ const moduleApi = {
   name: MODULE_NAME,
 };
 
-// Register API on module
 Hooks.once("ready", () => {
   const gameObj = game as GameType | undefined;
-  if (gameObj?.modules) {
-    const module = gameObj.modules.get(MODULE_ID);
-    if (module) {
-      module.api = moduleApi;
-    }
+  const module = gameObj?.modules?.get(MODULE_ID);
+  if (module) {
+    module.api = moduleApi;
   }
-  log("FAX-BANK API registered");
 });
 
-// Export for external use
-export { AdminPanel, BankDialog, openBankDialog, openAdminPanel };
+export { AdminPanel, BankDialog, openBankDialog };
 export * from "./constants";
 export * from "./utils/logger";
 export * from "./data/EconomyManager";

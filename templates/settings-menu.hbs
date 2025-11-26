@@ -1,33 +1,21 @@
 <div class="fax-bank-settings-menu">
   <div class="menu-header">
     <h2><i class="fas fa-university"></i> FAX-BANK</h2>
-    <p>Banking System for Foundry VTT</p>
   </div>
 
   <div class="menu-buttons">
     {{#if isGM}}
-      <button type="button" class="btn btn-primary btn-large" data-action="open-admin">
-        <i class="fas fa-cogs"></i>
-        <span>Open Admin Panel</span>
-        <small>Manage economies, banks, currencies</small>
-      </button>
+    <button type="button" id="fax-bank-open-admin" class="fax-bank-btn fax-bank-btn-primary">
+      <i class="fas fa-cogs"></i> Open Admin Panel
+    </button>
     {{/if}}
 
-    <button type="button" class="btn btn-secondary btn-large" data-action="open-bank">
-      <i class="fas fa-wallet"></i>
-      <span>Open Bank Dialog</span>
-      <small>For selected token</small>
+    <button type="button" id="fax-bank-open-bank" class="fax-bank-btn fax-bank-btn-secondary">
+      <i class="fas fa-wallet"></i> Open Bank (Selected Token)
     </button>
   </div>
 
   <div class="menu-help">
-    <h3><i class="fas fa-keyboard"></i> Quick Access</h3>
-    <ul>
-      <li><strong>Token HUD:</strong> Click the bank icon on any token</li>
-      <li><strong>Shift+Select:</strong> Select token, then press Shift</li>
-      <li><strong>Scene Controls:</strong> Bank icon in Token Controls (left sidebar)</li>
-      <li><strong>Console:</strong> <code>FAXBANK.openAdmin()</code> or <code>FAXBANK.openBank()</code></li>
-    </ul>
+    <p><strong>Console:</strong> <code>FAXBANK.openAdmin()</code> or <code>FAXBANK.openBank()</code></p>
   </div>
 </div>
-
