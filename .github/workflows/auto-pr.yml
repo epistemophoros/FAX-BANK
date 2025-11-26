@@ -1,0 +1,87 @@
+# Auto PR Workflow
+# Automatically creates or updates a PR from development to main
+
+name: Auto PR
+
+on:
+  push:
+    branches:
+      - development
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  create-pr:
+    name: Create/Update PR to Main
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get version
+        id: info
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Create or Update Pull Request
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Check if PR already exists
+          EXISTING_PR=$(gh pr list --head development --base main --json number --jq '.[0].number' 2>/dev/null || echo "")
+          
+          if [ -n "$EXISTING_PR" ] && [ "$EXISTING_PR" != "null" ]; then
+            echo "PR #$EXISTING_PR already exists, updating..."
+            gh pr edit "$EXISTING_PR" \
+              --title "chore: merge development into main (v${{ steps.info.outputs.version }})" \
+              --body "## Automated PR from Development
+
+This PR merges all changes from \`development\` into \`main\`.
+
+### Version
+**v${{ steps.info.outputs.version }}**
+
+### Latest Commit
+\`${{ github.sha }}\` - ${{ github.event.head_commit.message }}
+
+### Checklist
+- [ ] All CI checks pass
+- [ ] Code reviewed
+- [ ] Version bumped (if needed)
+- [ ] CHANGELOG updated (if needed)
+
+---
+*This PR is automatically kept in sync with the development branch.*"
+            echo "PR #$EXISTING_PR updated"
+          else
+            echo "Creating new PR..."
+            gh pr create \
+              --head development \
+              --base main \
+              --title "chore: merge development into main (v${{ steps.info.outputs.version }})" \
+              --body "## Automated PR from Development
+
+This PR merges all changes from \`development\` into \`main\`.
+
+### Version
+**v${{ steps.info.outputs.version }}**
+
+### Latest Commit
+\`${{ github.sha }}\` - ${{ github.event.head_commit.message }}
+
+### Checklist
+- [ ] All CI checks pass
+- [ ] Code reviewed
+- [ ] Version bumped (if needed)
+- [ ] CHANGELOG updated (if needed)
+
+---
+*This PR is automatically kept in sync with the development branch.*"
+            echo "New PR created"
+          fi
