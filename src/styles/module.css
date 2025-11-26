@@ -1,0 +1,187 @@
+/**
+ * Example Module Styles
+ * Foundry VTT Module
+ */
+
+/* CSS Variables for theming */
+:root {
+  --example-module-primary: #5e35b1;
+  --example-module-primary-hover: #7e57c2;
+  --example-module-secondary: #00acc1;
+  --example-module-background: #fafafa;
+  --example-module-surface: #ffffff;
+  --example-module-text: #212121;
+  --example-module-text-secondary: #757575;
+  --example-module-border: #e0e0e0;
+  --example-module-shadow: rgba(0, 0, 0, 0.1);
+  --example-module-radius: 8px;
+  --example-module-transition: 0.2s ease-in-out;
+}
+
+/* Main application container */
+.example-module {
+  font-family: "Signika", sans-serif;
+  background: var(--example-module-background);
+  color: var(--example-module-text);
+}
+
+.example-module .window-content {
+  padding: 16px;
+  background: var(--example-module-surface);
+}
+
+/* Header styles */
+.example-module .app-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--example-module-primary);
+}
+
+.example-module .app-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--example-module-primary);
+}
+
+/* Content section */
+.example-module .content-section {
+  margin-bottom: 16px;
+}
+
+.example-module .content-section h3 {
+  margin: 0 0 8px;
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+.example-module .content-section p {
+  margin: 0;
+  line-height: 1.6;
+  color: var(--example-module-text-secondary);
+}
+
+/* Message box */
+.example-module .message-box {
+  padding: 12px 16px;
+  background: linear-gradient(135deg, var(--example-module-primary) 0%, var(--example-module-secondary) 100%);
+  border-radius: var(--example-module-radius);
+  color: white;
+  font-weight: 500;
+}
+
+/* Info panel */
+.example-module .info-panel {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.example-module .info-item {
+  padding: 12px;
+  background: var(--example-module-background);
+  border: 1px solid var(--example-module-border);
+  border-radius: var(--example-module-radius);
+}
+
+.example-module .info-item .label {
+  display: block;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--example-module-text-secondary);
+  margin-bottom: 4px;
+}
+
+.example-module .info-item .value {
+  font-weight: 600;
+  color: var(--example-module-text);
+}
+
+/* Button styles */
+.example-module .button-group {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.example-module .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 20px;
+  border: none;
+  border-radius: var(--example-module-radius);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--example-module-transition);
+}
+
+.example-module .btn:focus {
+  outline: 2px solid var(--example-module-primary);
+  outline-offset: 2px;
+}
+
+.example-module .btn-primary {
+  background: var(--example-module-primary);
+  color: white;
+}
+
+.example-module .btn-primary:hover {
+  background: var(--example-module-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px var(--example-module-shadow);
+}
+
+.example-module .btn-secondary {
+  background: var(--example-module-border);
+  color: var(--example-module-text);
+}
+
+.example-module .btn-secondary:hover {
+  background: #bdbdbd;
+}
+
+/* GM Badge */
+.example-module .gm-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  background: #ffc107;
+  color: #212121;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-radius: 4px;
+}
+
+/* Animation for app entrance */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.example-module .window-content > * {
+  animation: slideIn 0.3s ease-out forwards;
+}
+
+.example-module .window-content > *:nth-child(2) {
+  animation-delay: 0.05s;
+}
+
+.example-module .window-content > *:nth-child(3) {
+  animation-delay: 0.1s;
+}
+
