@@ -31,4 +31,3 @@ export const SOCKET_EVENTS = {
   UPDATE: `module.${MODULE_ID}.update`,
   SYNC: `module.${MODULE_ID}.sync`,
 } as const;
-

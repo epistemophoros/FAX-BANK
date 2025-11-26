@@ -4,13 +4,19 @@ import { MODULE_ID } from "../constants";
  * Localize a string using Foundry's localization system
  */
 export const localize = (key: string): string => {
+  if (!(game instanceof Game) || !game.i18n) {
+    return key;
+  }
   return game.i18n.localize(`${MODULE_ID}.${key}`);
 };
 
 /**
  * Format a localized string with substitutions
  */
-export const format = (key: string, data: Record<string, string | number>): string => {
+export const format = (key: string, data: Record<string, string>): string => {
+  if (!(game instanceof Game) || !game.i18n) {
+    return key;
+  }
   return game.i18n.format(`${MODULE_ID}.${key}`, data);
 };
 
@@ -88,4 +94,3 @@ export const throttle = <T extends (...args: Parameters<T>) => ReturnType<T>>(
     }
   };
 };
-

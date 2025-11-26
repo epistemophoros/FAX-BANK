@@ -200,3 +200,4 @@ MIT License - see [LICENSE](LICENSE) for details.
 - [Issue Tracker](https://github.com/yourusername/foundry-example-module/issues)
 - [Discussions](https://github.com/yourusername/foundry-example-module/discussions)
 
+

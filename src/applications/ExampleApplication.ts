@@ -16,7 +16,7 @@ interface ExampleAppData {
  * Example Application window for the module
  */
 export class ExampleApplication extends Application {
-  static override get defaultOptions(): ApplicationOptions {
+  static override get defaultOptions(): typeof Application.defaultOptions {
     return foundry.utils.mergeObject(super.defaultOptions, {
       id: `${MODULE_ID}-app`,
       title: MODULE_NAME,
@@ -26,7 +26,7 @@ export class ExampleApplication extends Application {
       height: "auto",
       resizable: true,
       minimizable: true,
-    }) as ApplicationOptions;
+    });
   }
 
   /**
@@ -56,7 +56,7 @@ export class ExampleApplication extends Application {
     html.find('[data-action="close"]').on("click", this.handleClose.bind(this));
 
     // Add keyboard accessibility
-    html.find('[data-action]').on("keydown", this.handleKeyDown.bind(this));
+    html.find("[data-action]").on("keydown", this.handleKeyDown.bind(this));
 
     log("Application listeners activated");
   }
@@ -76,7 +76,7 @@ export class ExampleApplication extends Application {
   private handleClose(event: JQuery.ClickEvent): void {
     event.preventDefault();
     log("Closing application...");
-    this.close();
+    void this.close();
   }
 
   /**
@@ -90,9 +90,8 @@ export class ExampleApplication extends Application {
       if (action === "refresh") {
         this.render(true);
       } else if (action === "close") {
-        this.close();
+        void this.close();
       }
     }
   }
 }
-

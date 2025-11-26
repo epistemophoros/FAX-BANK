@@ -2,7 +2,7 @@ import "./styles/module.css";
 import { MODULE_ID, MODULE_NAME } from "./constants";
 import { registerSettings } from "./settings";
 import { ExampleApplication } from "./applications/ExampleApplication";
-import { log, error } from "./utils/logger";
+import { log } from "./utils/logger";
 
 /**
  * Initialize the module when Foundry is ready
@@ -36,15 +36,20 @@ Hooks.once("ready", handleReady);
 Hooks.once("ready", () => {
   const moduleApi = {
     openExampleApp: (): ExampleApplication => {
-      return new ExampleApplication().render(true) as ExampleApplication;
+      return new ExampleApplication().render(true) as unknown as ExampleApplication;
     },
     version: "1.0.0",
     id: MODULE_ID,
     name: MODULE_NAME,
   };
 
-  // @ts-expect-error - Extending game object with module API
-  game.modules.get(MODULE_ID).api = moduleApi;
+  if (game instanceof Game) {
+    const module = game.modules.get(MODULE_ID);
+    if (module) {
+      // @ts-expect-error - Extending module with custom API
+      module.api = moduleApi;
+    }
+  }
 
   log("Module API registered");
 });
@@ -53,4 +58,3 @@ Hooks.once("ready", () => {
 export { ExampleApplication };
 export * from "./constants";
 export * from "./utils/logger";
-

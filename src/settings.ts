@@ -7,7 +7,12 @@ import { log } from "./utils/logger";
 export const registerSettings = (): void => {
   log("Registering settings...");
 
+  if (!(game instanceof Game) || !game.settings) {
+    return;
+  }
+
   // Enable Feature Toggle
+  // @ts-expect-error - Module ID is valid at runtime
   game.settings.register(MODULE_ID, SETTINGS.ENABLE_FEATURE, {
     name: `${MODULE_NAME}: Enable Feature`,
     hint: "Toggle the main feature of this module on or off.",
@@ -19,6 +24,7 @@ export const registerSettings = (): void => {
   });
 
   // Debug Mode Toggle
+  // @ts-expect-error - Module ID is valid at runtime
   game.settings.register(MODULE_ID, SETTINGS.DEBUG_MODE, {
     name: `${MODULE_NAME}: Debug Mode`,
     hint: "Enable debug logging for troubleshooting.",
@@ -30,6 +36,7 @@ export const registerSettings = (): void => {
   });
 
   // Custom Message Setting
+  // @ts-expect-error - Module ID is valid at runtime
   game.settings.register(MODULE_ID, SETTINGS.CUSTOM_MESSAGE, {
     name: `${MODULE_NAME}: Custom Message`,
     hint: "Set a custom message to display.",
@@ -47,6 +54,10 @@ export const registerSettings = (): void => {
  * Get a setting value with type safety
  */
 export const getSetting = <T>(key: string): T => {
+  if (!(game instanceof Game) || !game.settings) {
+    return "" as T;
+  }
+  // @ts-expect-error - Module ID is valid at runtime
   return game.settings.get(MODULE_ID, key) as T;
 };
 
@@ -54,6 +65,10 @@ export const getSetting = <T>(key: string): T => {
  * Set a setting value
  */
 export const setSetting = async <T>(key: string, value: T): Promise<T> => {
+  if (!(game instanceof Game) || !game.settings) {
+    return value;
+  }
+  // @ts-expect-error - Module ID is valid at runtime
   return (await game.settings.set(MODULE_ID, key, value)) as T;
 };
 
@@ -70,4 +85,3 @@ export const isDebugMode = (): boolean => {
 export const isFeatureEnabled = (): boolean => {
   return getSetting<boolean>(SETTINGS.ENABLE_FEATURE);
 };
-
