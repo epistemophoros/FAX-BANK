@@ -67,11 +67,7 @@
 /* Message box */
 .fax-bank .message-box {
   padding: 12px 16px;
-  background: linear-gradient(
-    135deg,
-    var(--fax-bank-primary) 0%,
-    var(--fax-bank-secondary) 100%
-  );
+  background: linear-gradient(135deg, var(--fax-bank-primary) 0%, var(--fax-bank-secondary) 100%);
   border-radius: var(--fax-bank-radius);
   color: white;
   font-weight: 500;
