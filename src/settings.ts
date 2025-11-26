@@ -7,6 +7,10 @@ import { log } from "./utils/logger";
 export const registerSettings = (): void => {
   log("Registering settings...");
 
+  if (!(game instanceof Game) || !game.settings) {
+    return;
+  }
+
   // Enable Feature Toggle
   game.settings.register(MODULE_ID, SETTINGS.ENABLE_FEATURE, {
     name: `${MODULE_NAME}: Enable Feature`,
@@ -47,6 +51,9 @@ export const registerSettings = (): void => {
  * Get a setting value with type safety
  */
 export const getSetting = <T>(key: string): T => {
+  if (!(game instanceof Game) || !game.settings) {
+    return "" as T;
+  }
   return game.settings.get(MODULE_ID, key) as T;
 };
 
@@ -54,6 +61,9 @@ export const getSetting = <T>(key: string): T => {
  * Set a setting value
  */
 export const setSetting = async <T>(key: string, value: T): Promise<T> => {
+  if (!(game instanceof Game) || !game.settings) {
+    return value;
+  }
   return (await game.settings.set(MODULE_ID, key, value)) as T;
 };
 
@@ -70,4 +80,3 @@ export const isDebugMode = (): boolean => {
 export const isFeatureEnabled = (): boolean => {
   return getSetting<boolean>(SETTINGS.ENABLE_FEATURE);
 };
-

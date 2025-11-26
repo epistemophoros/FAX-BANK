@@ -18,7 +18,10 @@ const formatMessage = (message: string): string => {
  */
 const isDebugEnabled = (): boolean => {
   try {
-    return (game?.settings?.get(MODULE_ID, "debugMode") as boolean) ?? false;
+    if (!(game instanceof Game) || !game.settings) {
+      return false;
+    }
+    return (game.settings.get(MODULE_ID, "debugMode") as boolean) ?? false;
   } catch {
     return false;
   }
@@ -75,4 +78,3 @@ export const error = (message: string, ...args: unknown[]): void => {
 export const debug = (message: string, ...args: unknown[]): void => {
   logInternal("debug", message, ...args);
 };
-
