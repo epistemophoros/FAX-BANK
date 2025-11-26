@@ -1,8 +1,8 @@
 {
-  "example-module": {
-    "title": "Example Module",
-    "description": "An example Foundry VTT module demonstrating best practices.",
-    
+  "fax-bank": {
+    "title": "FAX-BANK",
+    "description": "FAX-BANK module for Foundry VTT.",
+
     "settings": {
       "enableFeature": {
         "name": "Enable Feature",
@@ -17,11 +17,11 @@
         "hint": "Set a custom message to display."
       }
     },
-    
+
     "app": {
-      "title": "Example Application",
+      "title": "FAX-BANK",
       "welcome": "Welcome!",
-      "description": "This is an example Foundry VTT module demonstrating best practices.",
+      "description": "FAX-BANK module for Foundry VTT.",
       "role": "Role",
       "gameMaster": "Game Master",
       "player": "Player",
@@ -29,7 +29,7 @@
       "refresh": "Refresh",
       "close": "Close"
     },
-    
+
     "notifications": {
       "initialized": "Module initialized successfully.",
       "error": "An error occurred: {error}",
@@ -37,4 +37,3 @@
     }
   }
 }
-

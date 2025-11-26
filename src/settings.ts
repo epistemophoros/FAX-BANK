@@ -43,7 +43,7 @@ export const registerSettings = (): void => {
     scope: "world",
     config: true,
     type: String,
-    default: "Hello from Example Module!",
+    default: "Hello from FAX-BANK!",
     requiresReload: false,
   });
 

@@ -1,159 +1,155 @@
 /**
- * Example Module Styles
+ * FAX-BANK Styles
  * Foundry VTT Module
  */
 
 /* CSS Variables for theming */
 :root {
-  --example-module-primary: #5e35b1;
-  --example-module-primary-hover: #7e57c2;
-  --example-module-secondary: #00acc1;
-  --example-module-background: #fafafa;
-  --example-module-surface: #ffffff;
-  --example-module-text: #212121;
-  --example-module-text-secondary: #757575;
-  --example-module-border: #e0e0e0;
-  --example-module-shadow: rgba(0, 0, 0, 0.1);
-  --example-module-radius: 8px;
-  --example-module-transition: 0.2s ease-in-out;
+  --fax-bank-primary: #5e35b1;
+  --fax-bank-primary-hover: #7e57c2;
+  --fax-bank-secondary: #00acc1;
+  --fax-bank-background: #fafafa;
+  --fax-bank-surface: #ffffff;
+  --fax-bank-text: #212121;
+  --fax-bank-text-secondary: #757575;
+  --fax-bank-border: #e0e0e0;
+  --fax-bank-shadow: rgba(0, 0, 0, 0.1);
+  --fax-bank-radius: 8px;
+  --fax-bank-transition: 0.2s ease-in-out;
 }
 
 /* Main application container */
-.example-module {
+.fax-bank {
   font-family: "Signika", sans-serif;
-  background: var(--example-module-background);
-  color: var(--example-module-text);
+  background: var(--fax-bank-background);
+  color: var(--fax-bank-text);
 }
 
-.example-module .window-content {
+.fax-bank .window-content {
   padding: 16px;
-  background: var(--example-module-surface);
+  background: var(--fax-bank-surface);
 }
 
 /* Header styles */
-.example-module .app-header {
+.fax-bank .app-header {
   display: flex;
   align-items: center;
   gap: 12px;
   margin-bottom: 16px;
   padding-bottom: 12px;
-  border-bottom: 2px solid var(--example-module-primary);
+  border-bottom: 2px solid var(--fax-bank-primary);
 }
 
-.example-module .app-header h2 {
+.fax-bank .app-header h2 {
   margin: 0;
   font-size: 1.5rem;
   font-weight: 600;
-  color: var(--example-module-primary);
+  color: var(--fax-bank-primary);
 }
 
 /* Content section */
-.example-module .content-section {
+.fax-bank .content-section {
   margin-bottom: 16px;
 }
 
-.example-module .content-section h3 {
+.fax-bank .content-section h3 {
   margin: 0 0 8px;
   font-size: 1.1rem;
   font-weight: 500;
 }
 
-.example-module .content-section p {
+.fax-bank .content-section p {
   margin: 0;
   line-height: 1.6;
-  color: var(--example-module-text-secondary);
+  color: var(--fax-bank-text-secondary);
 }
 
 /* Message box */
-.example-module .message-box {
+.fax-bank .message-box {
   padding: 12px 16px;
-  background: linear-gradient(
-    135deg,
-    var(--example-module-primary) 0%,
-    var(--example-module-secondary) 100%
-  );
-  border-radius: var(--example-module-radius);
+  background: linear-gradient(135deg, var(--fax-bank-primary) 0%, var(--fax-bank-secondary) 100%);
+  border-radius: var(--fax-bank-radius);
   color: white;
   font-weight: 500;
 }
 
 /* Info panel */
-.example-module .info-panel {
+.fax-bank .info-panel {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 12px;
   margin-top: 16px;
 }
 
-.example-module .info-item {
+.fax-bank .info-item {
   padding: 12px;
-  background: var(--example-module-background);
-  border: 1px solid var(--example-module-border);
-  border-radius: var(--example-module-radius);
+  background: var(--fax-bank-background);
+  border: 1px solid var(--fax-bank-border);
+  border-radius: var(--fax-bank-radius);
 }
 
-.example-module .info-item .label {
+.fax-bank .info-item .label {
   display: block;
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: var(--example-module-text-secondary);
+  color: var(--fax-bank-text-secondary);
   margin-bottom: 4px;
 }
 
-.example-module .info-item .value {
+.fax-bank .info-item .value {
   font-weight: 600;
-  color: var(--example-module-text);
+  color: var(--fax-bank-text);
 }
 
 /* Button styles */
-.example-module .button-group {
+.fax-bank .button-group {
   display: flex;
   gap: 8px;
   margin-top: 16px;
 }
 
-.example-module .btn {
+.fax-bank .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
   padding: 10px 20px;
   border: none;
-  border-radius: var(--example-module-radius);
+  border-radius: var(--fax-bank-radius);
   font-size: 0.9rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all var(--example-module-transition);
+  transition: all var(--fax-bank-transition);
 }
 
-.example-module .btn:focus {
-  outline: 2px solid var(--example-module-primary);
+.fax-bank .btn:focus {
+  outline: 2px solid var(--fax-bank-primary);
   outline-offset: 2px;
 }
 
-.example-module .btn-primary {
-  background: var(--example-module-primary);
+.fax-bank .btn-primary {
+  background: var(--fax-bank-primary);
   color: white;
 }
 
-.example-module .btn-primary:hover {
-  background: var(--example-module-primary-hover);
+.fax-bank .btn-primary:hover {
+  background: var(--fax-bank-primary-hover);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px var(--example-module-shadow);
+  box-shadow: 0 4px 12px var(--fax-bank-shadow);
 }
 
-.example-module .btn-secondary {
-  background: var(--example-module-border);
-  color: var(--example-module-text);
+.fax-bank .btn-secondary {
+  background: var(--fax-bank-border);
+  color: var(--fax-bank-text);
 }
 
-.example-module .btn-secondary:hover {
+.fax-bank .btn-secondary:hover {
   background: #bdbdbd;
 }
 
 /* GM Badge */
-.example-module .gm-badge {
+.fax-bank .gm-badge {
   display: inline-block;
   padding: 4px 8px;
   background: #ffc107;
@@ -177,14 +173,14 @@
   }
 }
 
-.example-module .window-content > * {
+.fax-bank .window-content > * {
   animation: slideIn 0.3s ease-out forwards;
 }
 
-.example-module .window-content > *:nth-child(2) {
+.fax-bank .window-content > *:nth-child(2) {
   animation-delay: 0.05s;
 }
 
-.example-module .window-content > *:nth-child(3) {
+.fax-bank .window-content > *:nth-child(3) {
   animation-delay: 0.1s;
 }

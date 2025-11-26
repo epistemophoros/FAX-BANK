@@ -4,14 +4,14 @@ import { MODULE_ID, MODULE_NAME, TEMPLATES, SETTINGS, SOCKET_EVENTS } from "./co
 describe("constants", () => {
   describe("MODULE_ID", () => {
     it("should be a valid module identifier", () => {
-      expect(MODULE_ID).toBe("example-module");
+      expect(MODULE_ID).toBe("fax-bank");
       expect(MODULE_ID).toMatch(/^[a-z0-9-]+$/);
     });
   });
 
   describe("MODULE_NAME", () => {
     it("should be a human-readable name", () => {
-      expect(MODULE_NAME).toBe("Example Module");
+      expect(MODULE_NAME).toBe("FAX-BANK");
       expect(MODULE_NAME.length).toBeGreaterThan(0);
     });
   });

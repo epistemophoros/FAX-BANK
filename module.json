@@ -1,18 +1,17 @@
 {
-  "id": "example-module",
-  "title": "Example Module",
-  "description": "An example Foundry VTT module demonstrating best practices and CI/CD integration.",
+  "id": "fax-bank",
+  "title": "FAX-BANK",
+  "description": "FAX-BANK module for Foundry VTT.",
   "version": "#{VERSION}#",
   "compatibility": {
     "minimum": "11",
-    "verified": "12",
-    "maximum": "12"
+    "verified": "13",
+    "maximum": "13"
   },
   "authors": [
     {
-      "name": "Your Name",
-      "url": "https://github.com/epistemophoros",
-      "discord": "yourdiscord"
+      "name": "epistemophoros",
+      "url": "https://github.com/epistemophoros"
     }
   ],
   "url": "https://github.com/epistemophoros/FAX-BANK",
