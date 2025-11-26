@@ -1,0 +1,219 @@
+<div class="fax-bank-admin">
+  <header class="admin-header">
+    <h1><i class="fas fa-university"></i> FAX-BANK Admin Panel</h1>
+    <div class="stats-bar">
+      <span class="stat"><i class="fas fa-globe"></i> {{stats.totalEconomies}} Economies</span>
+      <span class="stat"><i class="fas fa-building"></i> {{stats.totalBanks}} Banks</span>
+      <span class="stat"><i class="fas fa-wallet"></i> {{stats.totalAccounts}} Accounts</span>
+      <span class="stat"><i class="fas fa-exchange-alt"></i> {{stats.totalTransactions}} Transactions</span>
+    </div>
+  </header>
+
+  <nav class="tabs" data-group="primary">
+    <a class="item active" data-tab="economies"><i class="fas fa-globe"></i> Economies</a>
+    <a class="item" data-tab="accounts"><i class="fas fa-wallet"></i> Accounts</a>
+    <a class="item" data-tab="transactions"><i class="fas fa-history"></i> Transactions</a>
+  </nav>
+
+  <section class="content">
+    <!-- Economies Tab -->
+    <div class="tab active" data-tab="economies">
+      <div class="tab-header">
+        <h2>Economies & Banks</h2>
+        <button type="button" class="btn btn-primary" data-action="create-economy">
+          <i class="fas fa-plus"></i> New Economy
+        </button>
+      </div>
+
+      {{#if economies.length}}
+        {{#each economies as |economy|}}
+          <div class="economy-card" data-economy-id="{{economy.id}}">
+            <div class="economy-header">
+              <h3><i class="fas fa-crown"></i> {{economy.name}}</h3>
+              <div class="economy-actions">
+                <button type="button" class="btn btn-sm" data-action="edit-economy" title="Edit">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button type="button" class="btn btn-sm btn-danger" data-action="delete-economy" title="Delete">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </div>
+            {{#if economy.description}}
+              <p class="economy-description">{{economy.description}}</p>
+            {{/if}}
+            <div class="economy-stats">
+              <span><i class="fas fa-percentage"></i> Interest: {{economy.interestRate}}%</span>
+              <span><i class="fas fa-chart-line"></i> Growth: {{economy.growthRate}}%</span>
+            </div>
+
+            <!-- Currencies Section -->
+            <div class="currencies-section">
+              <div class="section-header">
+                <h4><i class="fas fa-coins"></i> Currencies</h4>
+                <div class="currency-actions">
+                  <button type="button" class="btn btn-sm" data-action="add-dnd5e" title="Add D&D 5e Currencies">
+                    🎲 D&D 5e
+                  </button>
+                  <button type="button" class="btn btn-sm" data-action="add-pathfinder" title="Add Pathfinder Currencies">
+                    🛡️ PF
+                  </button>
+                  <button type="button" class="btn btn-sm btn-primary" data-action="create-currency">
+                    <i class="fas fa-plus"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="currencies-list">
+                {{#each (lookup ../currencies economy.id) as |currency|}}
+                  <div class="currency-tag" style="background-color: {{currency.color}}20; border-color: {{currency.color}}">
+                    <span class="currency-symbol">{{currency.symbol}}</span>
+                    <span class="currency-name">{{currency.name}}</span>
+                    <span class="currency-abbr">({{currency.abbreviation}})</span>
+                    <span class="currency-value">= {{currency.baseValue}}</span>
+                    <button type="button" class="btn-icon" data-action="delete-currency" data-currency-id="{{currency.id}}">
+                      <i class="fas fa-times"></i>
+                    </button>
+                  </div>
+                {{else}}
+                  <p class="empty-message">No currencies. Add D&D 5e or Pathfinder presets, or create custom.</p>
+                {{/each}}
+              </div>
+            </div>
+
+            <!-- Banks Section -->
+            <div class="banks-section">
+              <div class="section-header">
+                <h4><i class="fas fa-building"></i> Banks</h4>
+                <button type="button" class="btn btn-sm btn-primary" data-action="create-bank">
+                  <i class="fas fa-plus"></i> New Bank
+                </button>
+              </div>
+              <div class="banks-list">
+                {{#each (lookup ../banks economy.id) as |bank|}}
+                  <div class="bank-card" data-bank-id="{{bank.id}}">
+                    <div class="bank-header">
+                      <h5><i class="fas fa-university"></i> {{bank.name}}</h5>
+                      <div class="bank-actions">
+                        <button type="button" class="btn btn-sm" data-action="edit-bank" title="Edit">
+                          <i class="fas fa-edit"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-danger" data-action="delete-bank" title="Delete">
+                          <i class="fas fa-trash"></i>
+                        </button>
+                      </div>
+                    </div>
+                    {{#if bank.description}}
+                      <p class="bank-description">{{bank.description}}</p>
+                    {{/if}}
+                    <div class="bank-stats">
+                      <span><i class="fas fa-percentage"></i> Interest: {{bank.interestRate}}%</span>
+                    </div>
+                  </div>
+                {{else}}
+                  <p class="empty-message">No banks in this economy.</p>
+                {{/each}}
+              </div>
+            </div>
+          </div>
+        {{/each}}
+      {{else}}
+        <div class="empty-state">
+          <i class="fas fa-globe fa-3x"></i>
+          <p>No economies created yet.</p>
+          <p>Create an economy to get started with the banking system.</p>
+        </div>
+      {{/if}}
+    </div>
+
+    <!-- Accounts Tab -->
+    <div class="tab" data-tab="accounts">
+      <div class="tab-header">
+        <h2>All Accounts</h2>
+      </div>
+
+      {{#if accounts.length}}
+        <table class="accounts-table">
+          <thead>
+            <tr>
+              <th>Owner</th>
+              <th>Account</th>
+              <th>Balance</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{#each accounts as |account|}}
+              <tr class="{{#unless account.isActive}}inactive{{/unless}}">
+                <td>{{account.ownerName}}</td>
+                <td>{{account.name}}</td>
+                <td class="balance">{{account.balance}}</td>
+                <td>
+                  {{#if account.isActive}}
+                    <span class="status active">Active</span>
+                  {{else}}
+                    <span class="status inactive">Closed</span>
+                  {{/if}}
+                </td>
+                <td class="actions">
+                  <button type="button" class="btn btn-sm" data-action="view-account" data-account-id="{{account.id}}" title="View">
+                    <i class="fas fa-eye"></i>
+                  </button>
+                  <button type="button" class="btn btn-sm btn-success" data-action="admin-deposit" data-account-id="{{account.id}}" title="Deposit">
+                    <i class="fas fa-plus"></i>
+                  </button>
+                  <button type="button" class="btn btn-sm btn-warning" data-action="admin-withdraw" data-account-id="{{account.id}}" title="Withdraw">
+                    <i class="fas fa-minus"></i>
+                  </button>
+                </td>
+              </tr>
+            {{/each}}
+          </tbody>
+        </table>
+      {{else}}
+        <div class="empty-state">
+          <i class="fas fa-wallet fa-3x"></i>
+          <p>No accounts created yet.</p>
+        </div>
+      {{/if}}
+    </div>
+
+    <!-- Transactions Tab -->
+    <div class="tab" data-tab="transactions">
+      <div class="tab-header">
+        <h2>Recent Transactions</h2>
+      </div>
+
+      {{#if recentTransactions.length}}
+        <table class="transactions-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Type</th>
+              <th>Amount</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{#each recentTransactions as |tx|}}
+              <tr class="tx-{{tx.type}}">
+                <td>{{formatDate tx.createdAt}}</td>
+                <td><span class="tx-type {{tx.type}}">{{tx.type}}</span></td>
+                <td class="amount {{#if (gt tx.amount 0)}}positive{{else}}negative{{/if}}">
+                  {{#if (gt tx.amount 0)}}+{{/if}}{{tx.amount}}
+                </td>
+                <td>{{tx.description}}</td>
+              </tr>
+            {{/each}}
+          </tbody>
+        </table>
+      {{else}}
+        <div class="empty-state">
+          <i class="fas fa-history fa-3x"></i>
+          <p>No transactions yet.</p>
+        </div>
+      {{/if}}
+    </div>
+  </section>
+</div>
+

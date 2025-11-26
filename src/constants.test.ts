@@ -18,8 +18,10 @@ describe("constants", () => {
 
   describe("TEMPLATES", () => {
     it("should contain valid template paths", () => {
-      expect(TEMPLATES.EXAMPLE_APP).toContain(MODULE_ID);
-      expect(TEMPLATES.EXAMPLE_APP).toMatch(/\.hbs$/);
+      expect(TEMPLATES.ADMIN_PANEL).toContain(MODULE_ID);
+      expect(TEMPLATES.ADMIN_PANEL).toMatch(/\.hbs$/);
+      expect(TEMPLATES.BANK_DIALOG).toContain(MODULE_ID);
+      expect(TEMPLATES.BANK_DIALOG).toMatch(/\.hbs$/);
     });
   });
 
@@ -38,9 +40,9 @@ describe("constants", () => {
   });
 
   describe("SOCKET_EVENTS", () => {
-    it("should have properly namespaced event names", () => {
-      expect(SOCKET_EVENTS.UPDATE).toContain(MODULE_ID);
-      expect(SOCKET_EVENTS.SYNC).toContain(MODULE_ID);
+    it("should have properly named event names", () => {
+      expect(SOCKET_EVENTS.SYNC_DATA).toBe("syncData");
+      expect(SOCKET_EVENTS.TRANSACTION).toBe("transaction");
     });
   });
 });

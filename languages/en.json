@@ -1,39 +1,77 @@
 {
-  "fax-bank": {
-    "title": "FAX-BANK",
-    "description": "FAX-BANK module for Foundry VTT.",
-
-    "settings": {
-      "enableFeature": {
-        "name": "Enable Feature",
-        "hint": "Toggle the main feature of this module on or off."
+  "FAX-BANK": {
+    "Title": "FAX-BANK",
+    "Settings": {
+      "EnableFeature": {
+        "Name": "Show Bank on Token HUD",
+        "Hint": "Display a bank button on the Token HUD for quick access to character banking."
       },
-      "debugMode": {
-        "name": "Debug Mode",
-        "hint": "Enable debug logging for troubleshooting."
+      "ShiftClick": {
+        "Name": "Shift+Click Opens Bank",
+        "Hint": "Hold Shift and click on a token to open their bank dialog."
       },
-      "customMessage": {
-        "name": "Custom Message",
-        "hint": "Set a custom message to display."
+      "CurrencyFormat": {
+        "Name": "Currency Display Format",
+        "Hint": "How currency amounts should be displayed."
       }
     },
-
-    "app": {
-      "title": "FAX-BANK",
-      "welcome": "Welcome!",
-      "description": "FAX-BANK module for Foundry VTT.",
-      "role": "Role",
-      "gameMaster": "Game Master",
-      "player": "Player",
-      "lastUpdated": "Last Updated",
-      "refresh": "Refresh",
-      "close": "Close"
+    "Admin": {
+      "Title": "Admin Panel",
+      "Economies": "Economies",
+      "Accounts": "Accounts",
+      "Transactions": "Transactions",
+      "CreateEconomy": "Create Economy",
+      "CreateBank": "Create Bank",
+      "CreateCurrency": "Create Currency",
+      "CreateAccount": "Create Account"
     },
-
-    "notifications": {
-      "initialized": "Module initialized successfully.",
-      "error": "An error occurred: {error}",
-      "settingsSaved": "Settings saved successfully."
+    "Economy": {
+      "Name": "Economy Name",
+      "Description": "Description",
+      "InterestRate": "Interest Rate",
+      "GrowthRate": "Growth Rate"
+    },
+    "Currency": {
+      "Name": "Currency Name",
+      "Abbreviation": "Abbreviation",
+      "Symbol": "Symbol",
+      "BaseValue": "Base Value",
+      "Color": "Color"
+    },
+    "Bank": {
+      "Name": "Bank Name",
+      "Description": "Description",
+      "InterestRate": "Interest Rate"
+    },
+    "Account": {
+      "Name": "Account Name",
+      "Balance": "Balance",
+      "Owner": "Owner",
+      "Status": "Status",
+      "Active": "Active",
+      "Closed": "Closed"
+    },
+    "Transaction": {
+      "Deposit": "Deposit",
+      "Withdraw": "Withdraw",
+      "Transfer": "Transfer",
+      "Amount": "Amount",
+      "Description": "Description",
+      "Date": "Date",
+      "Type": "Type"
+    },
+    "Messages": {
+      "AccountCreated": "Account created successfully!",
+      "DepositSuccess": "Deposit successful!",
+      "WithdrawSuccess": "Withdrawal successful!",
+      "TransferSuccess": "Transfer successful!",
+      "InsufficientFunds": "Insufficient funds.",
+      "AccountNotFound": "Account not found.",
+      "NoAccountSelected": "Please select an account first."
+    },
+    "Presets": {
+      "DnD5e": "D&D 5e Currencies",
+      "Pathfinder": "Pathfinder Currencies"
     }
   }
 }

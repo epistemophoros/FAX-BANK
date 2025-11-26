@@ -1,3 +1,7 @@
+/**
+ * FAX-BANK Settings
+ */
+
 import { MODULE_ID, MODULE_NAME, SETTINGS } from "./constants";
 import { log } from "./utils/logger";
 
@@ -21,10 +25,10 @@ export const registerSettings = (): void => {
     return;
   }
 
-  // Enable Feature Toggle
+  // Show Bank Button on Token HUD
   gameObj.settings.register(MODULE_ID, SETTINGS.ENABLE_FEATURE, {
-    name: `${MODULE_NAME}: Enable Feature`,
-    hint: "Toggle the main feature of this module on or off.",
+    name: `${MODULE_NAME}: Show Bank on Token HUD`,
+    hint: "Show the bank button on the Token HUD for quick access.",
     scope: "world",
     config: true,
     type: Boolean,
@@ -32,25 +36,30 @@ export const registerSettings = (): void => {
     requiresReload: false,
   });
 
-  // Debug Mode Toggle
+  // Enable Shift+Click on Tokens
   gameObj.settings.register(MODULE_ID, SETTINGS.DEBUG_MODE, {
-    name: `${MODULE_NAME}: Debug Mode`,
-    hint: "Enable debug logging for troubleshooting.",
-    scope: "client",
+    name: `${MODULE_NAME}: Shift+Click Opens Bank`,
+    hint: "Hold Shift and click a token to open their bank dialog.",
+    scope: "world",
     config: true,
     type: Boolean,
-    default: false,
+    default: true,
     requiresReload: false,
   });
 
-  // Custom Message Setting
+  // Default Currency Display
   gameObj.settings.register(MODULE_ID, SETTINGS.CUSTOM_MESSAGE, {
-    name: `${MODULE_NAME}: Custom Message`,
-    hint: "Set a custom message to display.",
-    scope: "world",
+    name: `${MODULE_NAME}: Default Currency Format`,
+    hint: "How to display currency amounts (symbol, abbreviation, full).",
+    scope: "client",
     config: true,
     type: String,
-    default: "Hello from FAX-BANK!",
+    choices: {
+      symbol: "Symbol (🪙 100)",
+      abbreviation: "Abbreviation (100 gp)",
+      full: "Full Name (100 Gold)",
+    },
+    default: "abbreviation",
     requiresReload: false,
   });
 
@@ -80,15 +89,15 @@ export const setSetting = async <T>(key: string, value: T): Promise<T> => {
 };
 
 /**
- * Check if debug mode is enabled
+ * Check if Token HUD button is enabled
  */
-export const isDebugMode = (): boolean => {
-  return getSetting<boolean>(SETTINGS.DEBUG_MODE);
+export const isTokenHUDEnabled = (): boolean => {
+  return getSetting<boolean>(SETTINGS.ENABLE_FEATURE);
 };
 
 /**
- * Check if main feature is enabled
+ * Check if Shift+Click is enabled
  */
-export const isFeatureEnabled = (): boolean => {
-  return getSetting<boolean>(SETTINGS.ENABLE_FEATURE);
+export const isShiftClickEnabled = (): boolean => {
+  return getSetting<boolean>(SETTINGS.DEBUG_MODE);
 };

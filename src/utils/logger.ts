@@ -1,11 +1,11 @@
-import { MODULE_ID, MODULE_NAME } from "../constants";
-
 /**
- * Log levels for the module
+ * FAX-BANK Logger Utility
+ * Provides consistent logging with module prefix
  */
-type LogLevel = "log" | "warn" | "error" | "debug";
 
-// Type for game object with settings
+import { MODULE_ID, SETTINGS } from "../constants";
+
+// Type for game object
 type GameWithSettings = {
   settings?: {
     get: (module: string, key: string) => unknown;
@@ -13,76 +13,57 @@ type GameWithSettings = {
 };
 
 /**
- * Format a log message with module prefix
- */
-const formatMessage = (message: string): string => {
-  return `${MODULE_NAME} | ${message}`;
-};
-
-/**
  * Check if debug mode is enabled
- * Note: This uses a direct check to avoid circular dependencies with settings.ts
  */
 const isDebugEnabled = (): boolean => {
+  const gameObj = game as GameWithSettings | undefined;
+  if (!gameObj?.settings) return false;
+
   try {
-    const gameObj = game as GameWithSettings | undefined;
-    if (!gameObj?.settings) {
-      return false;
-    }
-    return Boolean(gameObj.settings.get(MODULE_ID, "debugMode"));
+    return gameObj.settings.get(MODULE_ID, SETTINGS.DEBUG_MODE) === true;
   } catch {
     return false;
   }
 };
 
 /**
- * Internal logging function
+ * Log a message to the console with module prefix
  */
-const logInternal = (level: LogLevel, message: string, ...args: unknown[]): void => {
-  const formattedMessage = formatMessage(message);
-
-  switch (level) {
-    case "log":
-      console.log(formattedMessage, ...args); // eslint-disable-line no-console
-      break;
-    case "warn":
-      console.warn(formattedMessage, ...args);
-      break;
-    case "error":
-      console.error(formattedMessage, ...args);
-      break;
-    case "debug":
-      if (isDebugEnabled()) {
-        console.log(`[DEBUG] ${formattedMessage}`, ...args); // eslint-disable-line no-console
-      }
-      break;
-  }
+export const log = (...args: unknown[]): void => {
+  // eslint-disable-next-line no-console
+  console.log(`%c[FAX-BANK]`, "color: #FFD700; font-weight: bold;", ...args);
 };
 
 /**
- * Log a standard message
+ * Log a debug message (only if debug mode is enabled)
  */
-export const log = (message: string, ...args: unknown[]): void => {
-  logInternal("log", message, ...args);
+export const debug = (...args: unknown[]): void => {
+  if (isDebugEnabled()) {
+    // eslint-disable-next-line no-console
+    console.debug(`%c[FAX-BANK DEBUG]`, "color: #87CEEB; font-weight: bold;", ...args);
+  }
 };
 
 /**
  * Log a warning message
  */
-export const warn = (message: string, ...args: unknown[]): void => {
-  logInternal("warn", message, ...args);
+export const warn = (...args: unknown[]): void => {
+  // eslint-disable-next-line no-console
+  console.warn(`%c[FAX-BANK WARN]`, "color: #FFA500; font-weight: bold;", ...args);
 };
 
 /**
  * Log an error message
  */
-export const error = (message: string, ...args: unknown[]): void => {
-  logInternal("error", message, ...args);
+export const error = (...args: unknown[]): void => {
+  // eslint-disable-next-line no-console
+  console.error(`%c[FAX-BANK ERROR]`, "color: #FF6347; font-weight: bold;", ...args);
 };
 
 /**
- * Log a debug message (only when debug mode is enabled)
+ * Log an info message
  */
-export const debug = (message: string, ...args: unknown[]): void => {
-  logInternal("debug", message, ...args);
+export const info = (...args: unknown[]): void => {
+  // eslint-disable-next-line no-console
+  console.info(`%c[FAX-BANK]`, "color: #32CD32; font-weight: bold;", ...args);
 };
