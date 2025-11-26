@@ -42,13 +42,13 @@ jobs:
       - run: npm run lint
       - name: Format Check
         run: |
-          npm run format:check || {
-            echo "::group::Prettier wants these changes:"
+          if ! npm run format:check; then
+            echo "=== PRETTIER WANTS THESE CHANGES ==="
             npx prettier --write "src/**/*.{ts,js,json,css}"
-            git diff
-            echo "::endgroup::"
+            git diff --no-color
+            echo "=== END OF CHANGES ==="
             exit 1
-          }
+          fi
       - run: npm run typecheck
       - run: npm run test
 
