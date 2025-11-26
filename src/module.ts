@@ -28,24 +28,6 @@ type Notifications = {
   error: (message: string) => void;
 };
 
-type ChatMessage = {
-  content: string;
-  user?: { id?: string };
-};
-
-type SceneControlTool = {
-  name: string;
-  title: string;
-  icon: string;
-  button: boolean;
-  onClick: () => void;
-};
-
-type SceneControl = {
-  name: string;
-  tools: SceneControlTool[];
-};
-
 type CanvasType = {
   tokens?: {
     controlled?: Array<{ actor?: { id?: string; name?: string } }>;
@@ -75,7 +57,7 @@ const handleInit = (): void => {
 };
 
 /**
- * Module ready - set up hooks and UI
+ * Module ready - set up hooks and UI, expose console commands
  */
 const handleReady = (): void => {
   log("FAX-BANK ready!");
@@ -83,12 +65,47 @@ const handleReady = (): void => {
   const gameObj = game as GameType | undefined;
   const notifications = ui.notifications as Notifications | undefined;
 
+  // Expose global console commands
+  // @ts-expect-error - Adding to window for console access
+  window.FAXBANK = {
+    openAdmin: () => {
+      openAdminPanel();
+      log("Admin Panel opened via console");
+    },
+    openBank: (actorId?: string, actorName?: string) => {
+      if (actorId) {
+        openBankDialogForActor(actorId, actorName ?? "Unknown");
+      } else {
+        // Try to get selected token
+        const canvasObj = canvas as CanvasType | undefined;
+        const controlled = canvasObj?.tokens?.controlled;
+        if (controlled && controlled.length > 0 && controlled[0]?.actor?.id) {
+          openBankDialogForActor(
+            controlled[0].actor.id,
+            controlled[0].actor.name ?? "Unknown"
+          );
+        } else {
+          log("No actor specified. Usage: FAXBANK.openBank('actorId', 'name') or select a token");
+        }
+      }
+    },
+    help: () => {
+      log("=== FAX-BANK Console Commands ===");
+      log("FAXBANK.openAdmin() - Open the Admin Panel (GM only)");
+      log("FAXBANK.openBank() - Open bank for selected token");
+      log("FAXBANK.openBank('actorId', 'name') - Open bank for specific actor");
+      log("FAXBANK.help() - Show this help");
+    },
+  };
+
   if (gameObj?.user?.isGM) {
     log("GM detected - Admin features enabled");
-    notifications?.info("FAX-BANK: Admin Panel available in Scene Controls (bank icon)");
+    notifications?.info("FAX-BANK loaded! Use FAXBANK.openAdmin() in console or check Settings");
   } else {
-    notifications?.info("FAX-BANK: Bank available via Token HUD or /bank command");
+    notifications?.info("FAX-BANK loaded! Use Token HUD bank button or FAXBANK.openBank() in console");
   }
+
+  log("Console commands available: FAXBANK.openAdmin(), FAXBANK.openBank(), FAXBANK.help()");
 };
 
 /**
@@ -98,46 +115,54 @@ Hooks.once("init", handleInit);
 Hooks.once("ready", handleReady);
 
 /**
- * Add scene control buttons (left sidebar)
+ * Add scene control buttons (Token Controls in left sidebar)
  */
 Hooks.on("getSceneControlButtons", (controls: SceneControl[]) => {
   const gameObj = game as GameType | undefined;
 
   // Find the token controls group
-  const tokenControls = controls.find((c) => c.name === "token");
-  if (!tokenControls) return;
+  const tokenControls = controls.find((c: SceneControl) => c.name === "token");
+  if (!tokenControls) {
+    log("Token controls not found, cannot add bank button");
+    return;
+  }
+
+  log("Adding FAX-BANK buttons to Token Controls");
 
   // Add Bank button for all users
   tokenControls.tools.push({
     name: "fax-bank",
-    title: "FAX-BANK",
+    title: "FAX-BANK - Open Bank",
     icon: "fas fa-university",
-    button: true,
+    visible: true,
     onClick: () => {
-      if (gameObj?.user?.isGM) {
-        // GM opens admin panel
-        openAdminPanel();
-      } else {
-        // Players see instruction
-        const notifications = ui.notifications as Notifications | undefined;
-        notifications?.info(
-          "Select a token and use the Token HUD bank button, or use /bank command"
+      const canvasObj = canvas as CanvasType | undefined;
+      const controlled = canvasObj?.tokens?.controlled;
+      if (controlled && controlled.length > 0 && controlled[0]?.actor?.id) {
+        openBankDialogForActor(
+          controlled[0].actor.id,
+          controlled[0].actor.name ?? "Unknown"
         );
+      } else {
+        const notifications = ui.notifications as Notifications | undefined;
+        notifications?.warn("Select a token first to open their bank");
       }
     },
-  });
+    button: true,
+  } as SceneControlTool);
 
-  // Add Admin Panel button for GMs
+  // Add Admin Panel button for GMs only
   if (gameObj?.user?.isGM) {
     tokenControls.tools.push({
       name: "fax-bank-admin",
-      title: "FAX-BANK Admin Panel",
+      title: "FAX-BANK - Admin Panel",
       icon: "fas fa-cogs",
-      button: true,
+      visible: true,
       onClick: () => {
         openAdminPanel();
       },
-    });
+      button: true,
+    } as SceneControlTool);
   }
 });
 
@@ -173,92 +198,61 @@ Hooks.on("renderTokenHUD", (_hud: TokenHUD, html: JQuery, data: { actorId?: stri
 });
 
 /**
- * Handle Shift+Click on tokens to open bank dialog
+ * Handle canvas click with shift key to open bank dialog
  */
-Hooks.on("clickToken", (token: { actor?: { id?: string; name?: string } }, event: MouseEvent) => {
-  const enableShiftClick = getSetting<boolean>(SETTINGS.DEBUG_MODE);
-  if (!enableShiftClick || !event.shiftKey) return;
+Hooks.on("canvasReady", () => {
+  const canvasElement = document.getElementById("board");
+  if (!canvasElement) return;
 
-  const actorId = token.actor?.id;
-  const actorName = token.actor?.name ?? "Unknown";
+  canvasElement.addEventListener("click", (event: MouseEvent) => {
+    const enableShiftClick = getSetting<boolean>(SETTINGS.DEBUG_MODE);
+    if (!enableShiftClick || !event.shiftKey) return;
 
-  if (actorId) {
-    openBankDialogForActor(actorId, actorName);
-  }
-});
-
-/**
- * Chat command handler - /bank
- */
-Hooks.on("chatMessage", (_chatLog: unknown, message: string, _chatData: ChatMessage) => {
-  const command = message.trim().toLowerCase();
-
-  if (command === "/bank" || command === "/bank help") {
-    showBankHelp();
-    return false; // Prevent message from being sent
-  }
-
-  if (command === "/bank admin") {
-    const gameObj = game as GameType | undefined;
-    if (gameObj?.user?.isGM) {
-      openAdminPanel();
-    } else {
-      const notifications = ui.notifications as Notifications | undefined;
-      notifications?.warn("Only GMs can access the Admin Panel");
-    }
-    return false;
-  }
-
-  if (command.startsWith("/bank open")) {
-    // Try to open bank for controlled token
+    // Get controlled tokens
     const canvasObj = canvas as CanvasType | undefined;
     const controlled = canvasObj?.tokens?.controlled;
-    if (controlled && controlled.length > 0) {
-      const token = controlled[0];
-      if (token?.actor?.id) {
-        openBankDialogForActor(token.actor.id, token.actor.name ?? "Unknown");
-      }
-    } else {
-      const notifications = ui.notifications as Notifications | undefined;
-      notifications?.warn("Select a token first to open its bank");
+    if (controlled && controlled.length > 0 && controlled[0]?.actor?.id) {
+      openBankDialogForActor(
+        controlled[0].actor.id,
+        controlled[0].actor.name ?? "Unknown"
+      );
     }
-    return false;
-  }
-
-  return true; // Allow other messages
+  });
 });
 
 /**
- * Show bank help in chat
+ * Also try the controlToken hook for shift+click
  */
-const showBankHelp = (): void => {
-  const gameObj = game as GameType | undefined;
-  const isGM = gameObj?.user?.isGM ?? false;
+Hooks.on(
+  "controlToken",
+  (token: { actor?: { id?: string; name?: string } }, controlled: boolean) => {
+    if (!controlled) return;
 
-  const helpText = `
-    <div class="fax-bank-help">
-      <h3>🏦 FAX-BANK Commands</h3>
-      <ul>
-        <li><code>/bank</code> - Show this help</li>
-        <li><code>/bank open</code> - Open bank for selected token</li>
-        ${isGM ? "<li><code>/bank admin</code> - Open Admin Panel (GM only)</li>" : ""}
-      </ul>
-      <h4>Other Ways to Access:</h4>
-      <ul>
-        <li>Click the bank icon on Token HUD</li>
-        <li>Shift+Click on a token (if enabled)</li>
-        <li>Click the bank icon in Scene Controls</li>
-      </ul>
-    </div>
-  `;
+    // Check if shift is held (we'll check on next click)
+    const enableShiftClick = getSetting<boolean>(SETTINGS.DEBUG_MODE);
+    if (!enableShiftClick) return;
 
-  // @ts-expect-error - ChatMessage.create exists at runtime in Foundry VTT
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-  ChatMessage.create({
-    content: helpText,
-    whisper: [gameObj?.user?.id ?? ""],
-  });
-};
+    // Store token info for shift+click handler
+    const actorId = token.actor?.id;
+    const actorName = token.actor?.name ?? "Unknown";
+
+    if (actorId) {
+      // Add one-time keydown listener for shift
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "Shift") {
+          openBankDialogForActor(actorId, actorName);
+          document.removeEventListener("keydown", handleKeyDown);
+        }
+      };
+
+      // Remove after 2 seconds if not used
+      document.addEventListener("keydown", handleKeyDown);
+      setTimeout(() => {
+        document.removeEventListener("keydown", handleKeyDown);
+      }, 2000);
+    }
+  }
+);
 
 /**
  * Open Admin Panel (creates new instance if needed)
@@ -288,25 +282,10 @@ const openBankDialogForActor = (actorId: string, actorName: string): BankDialog 
  * Module API - exposed for macros and other modules
  */
 const moduleApi = {
-  // Open admin panel (GM only)
-  openAdminPanel: (): AdminPanel | null => {
-    const gameObj = game as GameType | undefined;
-    if (!gameObj?.user?.isGM) {
-      const notifications = ui.notifications as Notifications | undefined;
-      notifications?.warn("Only GMs can access the Admin Panel");
-      return null;
-    }
-    return openAdminPanel();
-  },
-
-  // Open bank dialog for an actor
+  openAdminPanel,
   openBankDialog: openBankDialogForActor,
-
-  // Get classes for extension
   BankDialog,
   AdminPanel,
-
-  // Module info
   version: "1.0.0",
   id: MODULE_ID,
   name: MODULE_NAME,

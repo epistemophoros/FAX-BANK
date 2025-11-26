@@ -7,12 +7,79 @@ import { log } from "./utils/logger";
 
 // Type for game object with settings
 type GameWithSettings = {
+  user?: { isGM?: boolean };
   settings?: {
     register: (module: string, key: string, data: object) => void;
+    registerMenu: (module: string, key: string, data: object) => void;
     get: (module: string, key: string) => unknown;
     set: (module: string, key: string, value: unknown) => Promise<unknown>;
   };
 };
+
+/**
+ * Settings Menu - Admin Panel Launcher
+ */
+class AdminPanelLauncher extends FormApplication {
+  static override get defaultOptions(): FormApplicationOptions {
+    return foundry.utils.mergeObject(super.defaultOptions, {
+      id: "fax-bank-launcher",
+      title: "FAX-BANK",
+      template: `modules/${MODULE_ID}/templates/settings-menu.hbs`,
+      width: 400,
+      height: "auto",
+      closeOnSubmit: false,
+    }) as FormApplicationOptions;
+  }
+
+  override getData(): object {
+    const gameObj = game as GameWithSettings | undefined;
+    return {
+      isGM: gameObj?.user?.isGM ?? false,
+    };
+  }
+
+  override activateListeners(html: JQuery): void {
+    super.activateListeners(html);
+
+    html.find('[data-action="open-admin"]').on("click", (e) => {
+      e.preventDefault();
+      // Import dynamically to avoid circular deps
+      import("./applications/AdminPanel").then(({ AdminPanel }) => {
+        new AdminPanel().render(true);
+        this.close();
+      });
+    });
+
+    html.find('[data-action="open-bank"]').on("click", (e) => {
+      e.preventDefault();
+      type CanvasType = {
+        tokens?: {
+          controlled?: Array<{ actor?: { id?: string; name?: string } }>;
+        };
+      };
+      const canvasObj = canvas as CanvasType | undefined;
+      const controlled = canvasObj?.tokens?.controlled;
+      if (controlled && controlled.length > 0 && controlled[0]?.actor?.id) {
+        import("./applications/BankDialog").then(({ BankDialog }) => {
+          new BankDialog(
+            controlled[0]?.actor?.id ?? "",
+            controlled[0]?.actor?.name ?? "Unknown"
+          ).render(true);
+          this.close();
+        });
+      } else {
+        type Notifications = { warn: (msg: string) => void };
+        const notifications = ui.notifications as Notifications | undefined;
+        notifications?.warn("Select a token first to open their bank");
+      }
+    });
+  }
+
+  // eslint-disable-next-line @typescript-eslint/require-await
+  protected override async _updateObject(): Promise<void> {
+    // No form data to save
+  }
+}
 
 /**
  * Register module settings in Foundry
@@ -25,10 +92,20 @@ export const registerSettings = (): void => {
     return;
   }
 
+  // Settings Menu - Opens launcher with buttons
+  gameObj.settings.registerMenu(MODULE_ID, "launcher", {
+    name: "🏦 Open FAX-BANK",
+    label: "Open FAX-BANK",
+    hint: "Open the FAX-BANK panels",
+    icon: "fas fa-university",
+    type: AdminPanelLauncher,
+    restricted: false,
+  });
+
   // Show Bank Button on Token HUD
   gameObj.settings.register(MODULE_ID, SETTINGS.ENABLE_FEATURE, {
-    name: "Show Bank on Token HUD",
-    hint: "Display a bank button (🏦) on the Token HUD for quick access to character banking.",
+    name: "✅ Show Bank on Token HUD",
+    hint: "Display a bank button (🏦) on the Token HUD for quick access. (Recommended: ON)",
     scope: "world",
     config: true,
     type: Boolean,
@@ -38,8 +115,8 @@ export const registerSettings = (): void => {
 
   // Enable Shift+Click on Tokens
   gameObj.settings.register(MODULE_ID, SETTINGS.DEBUG_MODE, {
-    name: "Shift+Click Opens Bank",
-    hint: "Hold Shift and click on any token to instantly open their bank dialog.",
+    name: "✅ Shift+Select Opens Bank",
+    hint: "Select a token then press Shift to instantly open their bank dialog. (Recommended: ON)",
     scope: "world",
     config: true,
     type: Boolean,
