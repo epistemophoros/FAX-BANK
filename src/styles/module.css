@@ -67,7 +67,11 @@
 /* Message box */
 .example-module .message-box {
   padding: 12px 16px;
-  background: linear-gradient(135deg, var(--example-module-primary) 0%, var(--example-module-secondary) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--example-module-primary) 0%,
+    var(--example-module-secondary) 100%
+  );
   border-radius: var(--example-module-radius);
   color: white;
   font-weight: 500;
@@ -184,4 +188,3 @@
 .example-module .window-content > *:nth-child(3) {
   animation-delay: 0.1s;
 }
-
