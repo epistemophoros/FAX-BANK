@@ -23,7 +23,7 @@
   "author": "Your Name",
   "license": "MIT",
   "devDependencies": {
-    "@league-of-foundry-developers/foundry-vtt-types": "13.346.0-beta.20250812191140",
+    "@league-of-foundry-developers/foundry-vtt-types": "13.340.1",
     "@types/node": "^20.10.0",
     "@typescript-eslint/eslint-plugin": "^6.13.0",
     "@typescript-eslint/parser": "^6.13.0",
