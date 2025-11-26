@@ -12,22 +12,50 @@ permissions:
 
 jobs:
   build:
-    name: Build & Test
+    name: Build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: "npm"
+      - run: npm ci
+      - run: npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
 
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
       - run: npm ci
       - run: npm run lint
       - run: npm run format:check
       - run: npm run typecheck
       - run: npm run test
-      - run: npm run build
-      - run: test -f dist/scripts/module.js
+
+  create-pr:
+    name: PR
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.ref == 'refs/heads/development' && github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+      - id: v
+        run: echo "ver=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+      - env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR=$(gh pr list --head development --base main --json number -q '.[0].number' || echo "")
+          [ -z "$PR" ] && gh pr create --head development --base main \
+            --title "Release v${{ steps.v.outputs.ver }}" \
+            --body "Merge development into main for v${{ steps.v.outputs.ver }}"
