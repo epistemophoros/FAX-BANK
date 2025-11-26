@@ -41,11 +41,13 @@ class AdminPanelLauncher extends FormApplication {
 
     // Admin Panel button
     html.find("#fax-bank-open-admin").on("click", () => {
-      import("./applications/AdminPanel").then(({ AdminPanel }) => {
-        new AdminPanel().render(true);
-      }).catch(() => {
-        log("Failed to open Admin Panel");
-      });
+      import("./applications/AdminPanel")
+        .then(({ AdminPanel }) => {
+          new AdminPanel().render(true);
+        })
+        .catch(() => {
+          log("Failed to open Admin Panel");
+        });
       void this.close();
     });
 
@@ -58,11 +60,13 @@ class AdminPanelLauncher extends FormApplication {
       const token = canvasObj?.tokens?.controlled?.[0];
 
       if (token?.actor?.id) {
-        import("./applications/BankDialog").then(({ BankDialog }) => {
-          new BankDialog(token.actor?.id ?? "", token.actor?.name ?? "Unknown").render(true);
-        }).catch(() => {
-          log("Failed to open Bank Dialog");
-        });
+        import("./applications/BankDialog")
+          .then(({ BankDialog }) => {
+            new BankDialog(token.actor?.id ?? "", token.actor?.name ?? "Unknown").render(true);
+          })
+          .catch(() => {
+            log("Failed to open Bank Dialog");
+          });
         void this.close();
       } else {
         type Notifications = { warn: (msg: string) => void };
