@@ -30,6 +30,7 @@ const isDebugEnabled = (): boolean => {
  * Log a message to the console with module prefix
  */
 export const log = (...args: unknown[]): void => {
+  // eslint-disable-next-line no-console
   console.log(`%c[FAX-BANK]`, "color: #FFD700; font-weight: bold;", ...args);
 };
 
@@ -38,6 +39,7 @@ export const log = (...args: unknown[]): void => {
  */
 export const debug = (...args: unknown[]): void => {
   if (isDebugEnabled()) {
+    // eslint-disable-next-line no-console
     console.debug(`%c[FAX-BANK DEBUG]`, "color: #87CEEB; font-weight: bold;", ...args);
   }
 };
@@ -46,6 +48,7 @@ export const debug = (...args: unknown[]): void => {
  * Log a warning message
  */
 export const warn = (...args: unknown[]): void => {
+  // eslint-disable-next-line no-console
   console.warn(`%c[FAX-BANK WARN]`, "color: #FFA500; font-weight: bold;", ...args);
 };
 
@@ -53,6 +56,7 @@ export const warn = (...args: unknown[]): void => {
  * Log an error message
  */
 export const error = (...args: unknown[]): void => {
+  // eslint-disable-next-line no-console
   console.error(`%c[FAX-BANK ERROR]`, "color: #FF6347; font-weight: bold;", ...args);
 };
 
@@ -60,5 +64,6 @@ export const error = (...args: unknown[]): void => {
  * Log an info message
  */
 export const info = (...args: unknown[]): void => {
+  // eslint-disable-next-line no-console
   console.info(`%c[FAX-BANK]`, "color: #32CD32; font-weight: bold;", ...args);
 };

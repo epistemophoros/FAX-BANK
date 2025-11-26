@@ -102,6 +102,24 @@ export const debounce = <T extends (...args: Parameters<T>) => unknown>(
 };
 
 /**
+ * Throttle a function
+ */
+export const throttle = <T extends (...args: Parameters<T>) => unknown>(
+  func: T,
+  wait: number
+): ((...args: Parameters<T>) => void) => {
+  let lastTime = 0;
+
+  return (...args: Parameters<T>) => {
+    const now = Date.now();
+    if (now - lastTime >= wait) {
+      lastTime = now;
+      func(...args);
+    }
+  };
+};
+
+/**
  * Check if the current user is a GM
  */
 export const isGM = (): boolean => {
@@ -113,6 +131,9 @@ export const isGM = (): boolean => {
  * Get the module version
  */
 export const getModuleVersion = (): string => {
-  const gameObj = game as { modules?: { get: (id: string) => { version?: string } | undefined } } | undefined;
+  type GameWithModules = {
+    modules?: { get: (id: string) => { version?: string } | undefined };
+  };
+  const gameObj = game as GameWithModules | undefined;
   return gameObj?.modules?.get(MODULE_ID)?.version ?? "unknown";
 };

@@ -20,6 +20,11 @@ type GameType = {
   modules?: { get: (id: string) => { api?: unknown } | undefined };
 };
 
+// Type for notifications
+type Notifications = {
+  warn: (message: string) => void;
+};
+
 /**
  * Initialize module - register settings and data store
  */
@@ -29,12 +34,15 @@ const handleInit = (): void => {
   registerDataStore();
 
   // Register Handlebars helpers
-  Handlebars.registerHelper("eq", (a, b) => a === b);
-  Handlebars.registerHelper("gt", (a, b) => a > b);
+  Handlebars.registerHelper("eq", (a: unknown, b: unknown) => a === b);
+  Handlebars.registerHelper("gt", (a: number, b: number) => a > b);
   Handlebars.registerHelper("formatDate", (timestamp: number) => {
     return new Date(timestamp).toLocaleString();
   });
-  Handlebars.registerHelper("lookup", (obj, key) => obj?.[key]);
+  Handlebars.registerHelper(
+    "lookup",
+    (obj: Record<string, unknown> | undefined, key: string) => obj?.[key]
+  );
 };
 
 /**
@@ -67,7 +75,9 @@ Hooks.on("renderTokenHUD", (_hud: TokenHUD, html: JQuery, data: { actorId?: stri
 
   // Get actor name
   type ActorType = { name?: string };
-  const gameActors = (game as { actors?: { get: (id: string) => ActorType | undefined } } | undefined)?.actors;
+  const gameActors = (
+    game as { actors?: { get: (id: string) => ActorType | undefined } } | undefined
+  )?.actors;
   const actor = gameActors?.get(actorId);
   const actorName = actor?.name ?? "Unknown";
 
@@ -90,7 +100,7 @@ Hooks.on("renderTokenHUD", (_hud: TokenHUD, html: JQuery, data: { actorId?: stri
  * Handle Shift+Click on tokens to open bank dialog
  */
 Hooks.on("clickToken", (token: { actor?: { id?: string; name?: string } }, event: MouseEvent) => {
-  const enableShiftClick = getSetting<boolean>(SETTINGS.DEBUG_MODE); // Reusing debug mode for shift+click toggle
+  const enableShiftClick = getSetting<boolean>(SETTINGS.DEBUG_MODE);
   if (!enableShiftClick || !event.shiftKey) return;
 
   const actorId = token.actor?.id;
@@ -133,7 +143,8 @@ const moduleApi = {
   openAdminPanel: (): AdminPanel | null => {
     const gameObj = game as GameType | undefined;
     if (!gameObj?.user?.isGM) {
-      ui.notifications?.warn("Only GMs can access the Admin Panel");
+      const notifications = ui.notifications as Notifications | undefined;
+      notifications?.warn("Only GMs can access the Admin Panel");
       return null;
     }
     if (!adminPanel) {

@@ -477,4 +477,3 @@ export const getAccountBalance = (
   const currency = getCurrency(account.currencyId);
   return { balance: account.balance, currency };
 };
-

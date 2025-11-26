@@ -84,7 +84,13 @@ export interface Account {
 /**
  * Transaction Types
  */
-export type TransactionType = "deposit" | "withdrawal" | "transfer" | "exchange" | "interest" | "fee";
+export type TransactionType =
+  | "deposit"
+  | "withdrawal"
+  | "transfer"
+  | "exchange"
+  | "interest"
+  | "fee";
 
 /**
  * Transaction - A record of money movement
@@ -145,4 +151,3 @@ export interface ApiResponse<T = void> {
   data?: T;
   error?: string;
 }
-

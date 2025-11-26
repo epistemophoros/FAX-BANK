@@ -89,4 +89,3 @@ export const generateId = (): string => {
  * Get current timestamp
  */
 export const now = (): number => Date.now();
-

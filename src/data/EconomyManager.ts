@@ -292,4 +292,3 @@ export const convertCurrency = (
   if (rate === null) return null;
   return amount * rate;
 };
-

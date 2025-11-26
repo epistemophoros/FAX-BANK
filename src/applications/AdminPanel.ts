@@ -23,8 +23,14 @@ interface AdminPanelData {
   };
 }
 
-export class AdminPanel extends Application {
+// Type for notifications
+type Notifications = {
+  info: (message: string) => void;
+  warn: (message: string) => void;
+  error: (message: string) => void;
+};
 
+export class AdminPanel extends Application {
   static override get defaultOptions(): ApplicationOptions {
     return foundry.utils.mergeObject(super.defaultOptions, {
       id: `${MODULE_ID}-admin`,
@@ -73,25 +79,49 @@ export class AdminPanel extends Application {
     super.activateListeners(html);
 
     // Economy actions
-    html.find('[data-action="create-economy"]').on("click", () => this.handleCreateEconomy());
-    html.find('[data-action="edit-economy"]').on("click", (e) => this.handleEditEconomy(e));
-    html.find('[data-action="delete-economy"]').on("click", (e) => this.handleDeleteEconomy(e));
-    html.find('[data-action="add-dnd5e"]').on("click", (e) => this.handleAddPresetCurrencies(e, "dnd5e"));
-    html.find('[data-action="add-pathfinder"]').on("click", (e) => this.handleAddPresetCurrencies(e, "pathfinder"));
+    html.find('[data-action="create-economy"]').on("click", () => {
+      void this.handleCreateEconomy();
+    });
+    html.find('[data-action="edit-economy"]').on("click", (e) => {
+      void this.handleEditEconomy(e);
+    });
+    html.find('[data-action="delete-economy"]').on("click", (e) => {
+      void this.handleDeleteEconomy(e);
+    });
+    html.find('[data-action="add-dnd5e"]').on("click", (e) => {
+      void this.handleAddPresetCurrencies(e, "dnd5e");
+    });
+    html.find('[data-action="add-pathfinder"]').on("click", (e) => {
+      void this.handleAddPresetCurrencies(e, "pathfinder");
+    });
 
     // Currency actions
-    html.find('[data-action="create-currency"]').on("click", (e) => this.handleCreateCurrency(e));
-    html.find('[data-action="delete-currency"]').on("click", (e) => this.handleDeleteCurrency(e));
+    html.find('[data-action="create-currency"]').on("click", (e) => {
+      void this.handleCreateCurrency(e);
+    });
+    html.find('[data-action="delete-currency"]').on("click", (e) => {
+      void this.handleDeleteCurrency(e);
+    });
 
     // Bank actions
-    html.find('[data-action="create-bank"]').on("click", (e) => this.handleCreateBank(e));
-    html.find('[data-action="edit-bank"]').on("click", (e) => this.handleEditBank(e));
-    html.find('[data-action="delete-bank"]').on("click", (e) => this.handleDeleteBank(e));
+    html.find('[data-action="create-bank"]').on("click", (e) => {
+      void this.handleCreateBank(e);
+    });
+    html.find('[data-action="edit-bank"]').on("click", (e) => {
+      void this.handleEditBank(e);
+    });
+    html.find('[data-action="delete-bank"]').on("click", (e) => {
+      void this.handleDeleteBank(e);
+    });
 
     // Account actions
     html.find('[data-action="view-account"]').on("click", (e) => this.handleViewAccount(e));
-    html.find('[data-action="admin-deposit"]').on("click", (e) => this.handleAdminDeposit(e));
-    html.find('[data-action="admin-withdraw"]').on("click", (e) => this.handleAdminWithdraw(e));
+    html.find('[data-action="admin-deposit"]').on("click", (e) => {
+      void this.handleAdminDeposit(e);
+    });
+    html.find('[data-action="admin-withdraw"]').on("click", (e) => {
+      void this.handleAdminWithdraw(e);
+    });
 
     log("Admin panel listeners activated");
   }
@@ -131,7 +161,7 @@ export class AdminPanel extends Application {
       rejectClose: false,
     });
 
-    if (result && result.name) {
+    if (result?.name) {
       const response = await EconomyManager.createEconomy(
         result.name,
         result.description,
@@ -139,17 +169,20 @@ export class AdminPanel extends Application {
         result.growthRate
       );
 
+      const notifications = ui.notifications as Notifications | undefined;
       if (response.success) {
-        ui.notifications?.info(`Economy "${result.name}" created!`);
+        notifications?.info(`Economy "${result.name}" created!`);
         this.render();
       } else {
-        ui.notifications?.error(response.error ?? "Failed to create economy");
+        notifications?.error(response.error ?? "Failed to create economy");
       }
     }
   }
 
   private async handleEditEconomy(event: JQuery.ClickEvent): Promise<void> {
-    const economyId = $(event.currentTarget).closest("[data-economy-id]").data("economy-id") as string;
+    const economyId = $(event.currentTarget)
+      .closest("[data-economy-id]")
+      .data("economy-id") as string;
     const economy = EconomyManager.getEconomy(economyId);
     if (!economy) return;
 
@@ -189,13 +222,16 @@ export class AdminPanel extends Application {
 
     if (result) {
       await EconomyManager.updateEconomy(economyId, result);
-      ui.notifications?.info("Economy updated!");
+      const notifications = ui.notifications as Notifications | undefined;
+      notifications?.info("Economy updated!");
       this.render();
     }
   }
 
   private async handleDeleteEconomy(event: JQuery.ClickEvent): Promise<void> {
-    const economyId = $(event.currentTarget).closest("[data-economy-id]").data("economy-id") as string;
+    const economyId = $(event.currentTarget)
+      .closest("[data-economy-id]")
+      .data("economy-id") as string;
     const economy = EconomyManager.getEconomy(economyId);
     if (!economy) return;
 
@@ -206,17 +242,23 @@ export class AdminPanel extends Application {
 
     if (confirmed) {
       const response = await EconomyManager.deleteEconomy(economyId);
+      const notifications = ui.notifications as Notifications | undefined;
       if (response.success) {
-        ui.notifications?.info("Economy deleted!");
+        notifications?.info("Economy deleted!");
         this.render();
       } else {
-        ui.notifications?.error(response.error ?? "Failed to delete economy");
+        notifications?.error(response.error ?? "Failed to delete economy");
       }
     }
   }
 
-  private async handleAddPresetCurrencies(event: JQuery.ClickEvent, preset: "dnd5e" | "pathfinder"): Promise<void> {
-    const economyId = $(event.currentTarget).closest("[data-economy-id]").data("economy-id") as string;
+  private async handleAddPresetCurrencies(
+    event: JQuery.ClickEvent,
+    preset: "dnd5e" | "pathfinder"
+  ): Promise<void> {
+    const economyId = $(event.currentTarget)
+      .closest("[data-economy-id]")
+      .data("economy-id") as string;
 
     if (preset === "dnd5e") {
       await EconomyManager.addDnD5eCurrencies(economyId);
@@ -224,12 +266,15 @@ export class AdminPanel extends Application {
       await EconomyManager.addPathfinderCurrencies(economyId);
     }
 
-    ui.notifications?.info(`${preset === "dnd5e" ? "D&D 5e" : "Pathfinder"} currencies added!`);
+    const notifications = ui.notifications as Notifications | undefined;
+    notifications?.info(`${preset === "dnd5e" ? "D&D 5e" : "Pathfinder"} currencies added!`);
     this.render();
   }
 
   private async handleCreateCurrency(event: JQuery.ClickEvent): Promise<void> {
-    const economyId = $(event.currentTarget).closest("[data-economy-id]").data("economy-id") as string;
+    const economyId = $(event.currentTarget)
+      .closest("[data-economy-id]")
+      .data("economy-id") as string;
 
     const content = `
       <form>
@@ -263,14 +308,14 @@ export class AdminPanel extends Application {
       callback: (html: JQuery) => ({
         name: html.find('[name="name"]').val() as string,
         abbreviation: html.find('[name="abbreviation"]').val() as string,
-        symbol: html.find('[name="symbol"]').val() as string || "🪙",
+        symbol: (html.find('[name="symbol"]').val() as string) || "🪙",
         baseValue: parseFloat(html.find('[name="baseValue"]').val() as string) || 1,
         color: html.find('[name="color"]').val() as string,
       }),
       rejectClose: false,
     });
 
-    if (result && result.name) {
+    if (result?.name) {
       await EconomyManager.createCurrency(
         economyId,
         result.name,
@@ -279,7 +324,8 @@ export class AdminPanel extends Application {
         result.baseValue,
         result.color
       );
-      ui.notifications?.info(`Currency "${result.name}" created!`);
+      const notifications = ui.notifications as Notifications | undefined;
+      notifications?.info(`Currency "${result.name}" created!`);
       this.render();
     }
   }
@@ -296,17 +342,20 @@ export class AdminPanel extends Application {
 
     if (confirmed) {
       const response = await EconomyManager.deleteCurrency(currencyId);
+      const notifications = ui.notifications as Notifications | undefined;
       if (response.success) {
-        ui.notifications?.info("Currency deleted!");
+        notifications?.info("Currency deleted!");
         this.render();
       } else {
-        ui.notifications?.error(response.error ?? "Failed to delete currency");
+        notifications?.error(response.error ?? "Failed to delete currency");
       }
     }
   }
 
   private async handleCreateBank(event: JQuery.ClickEvent): Promise<void> {
-    const economyId = $(event.currentTarget).closest("[data-economy-id]").data("economy-id") as string;
+    const economyId = $(event.currentTarget)
+      .closest("[data-economy-id]")
+      .data("economy-id") as string;
 
     const content = `
       <form>
@@ -337,9 +386,10 @@ export class AdminPanel extends Application {
       rejectClose: false,
     });
 
-    if (result && result.name) {
+    if (result?.name) {
       await BankManager.createBank(economyId, result.name, result.description, result.interestRate);
-      ui.notifications?.info(`Bank "${result.name}" created!`);
+      const notifications = ui.notifications as Notifications | undefined;
+      notifications?.info(`Bank "${result.name}" created!`);
       this.render();
     }
   }
@@ -380,7 +430,8 @@ export class AdminPanel extends Application {
 
     if (result) {
       await BankManager.updateBank(bankId, result);
-      ui.notifications?.info("Bank updated!");
+      const notifications = ui.notifications as Notifications | undefined;
+      notifications?.info("Bank updated!");
       this.render();
     }
   }
@@ -397,20 +448,19 @@ export class AdminPanel extends Application {
 
     if (confirmed) {
       const response = await BankManager.deleteBank(bankId);
+      const notifications = ui.notifications as Notifications | undefined;
       if (response.success) {
-        ui.notifications?.info("Bank deleted!");
+        notifications?.info("Bank deleted!");
         this.render();
       } else {
-        ui.notifications?.error(response.error ?? "Failed to delete bank");
+        notifications?.error(response.error ?? "Failed to delete bank");
       }
     }
   }
 
   private handleViewAccount(event: JQuery.ClickEvent): void {
     const accountId = $(event.currentTarget).data("account-id") as string;
-    // Open BankDialog for this account
     log(`View account: ${accountId}`);
-    // TODO: Open BankDialog
   }
 
   private async handleAdminDeposit(event: JQuery.ClickEvent): Promise<void> {
@@ -445,12 +495,18 @@ export class AdminPanel extends Application {
     });
 
     if (result && result.amount > 0) {
-      const response = await BankManager.deposit(accountId, result.amount, result.description, "admin");
+      const response = await BankManager.deposit(
+        accountId,
+        result.amount,
+        result.description,
+        "admin"
+      );
+      const notifications = ui.notifications as Notifications | undefined;
       if (response.success) {
-        ui.notifications?.info(`Deposited ${result.amount} ${currency?.abbreviation ?? ""}`);
+        notifications?.info(`Deposited ${result.amount} ${currency?.abbreviation ?? ""}`);
         this.render();
       } else {
-        ui.notifications?.error(response.error ?? "Deposit failed");
+        notifications?.error(response.error ?? "Deposit failed");
       }
     }
   }
@@ -488,14 +544,19 @@ export class AdminPanel extends Application {
     });
 
     if (result && result.amount > 0) {
-      const response = await BankManager.withdraw(accountId, result.amount, result.description, "admin");
+      const response = await BankManager.withdraw(
+        accountId,
+        result.amount,
+        result.description,
+        "admin"
+      );
+      const notifications = ui.notifications as Notifications | undefined;
       if (response.success) {
-        ui.notifications?.info(`Withdrew ${result.amount} ${currency?.abbreviation ?? ""}`);
+        notifications?.info(`Withdrew ${result.amount} ${currency?.abbreviation ?? ""}`);
         this.render();
       } else {
-        ui.notifications?.error(response.error ?? "Withdrawal failed");
+        notifications?.error(response.error ?? "Withdrawal failed");
       }
     }
   }
 }
-

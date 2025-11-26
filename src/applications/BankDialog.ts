@@ -17,6 +17,13 @@ interface BankDialogData {
   transactions: Transaction[];
 }
 
+// Type for notifications
+type Notifications = {
+  info: (message: string) => void;
+  warn: (message: string) => void;
+  error: (message: string) => void;
+};
+
 export class BankDialog extends Application {
   private actorId: string;
   private actorName: string;
@@ -91,12 +98,20 @@ export class BankDialog extends Application {
     });
 
     // Create account
-    html.find('[data-action="create-account"]').on("click", () => this.handleCreateAccount());
+    html.find('[data-action="create-account"]').on("click", () => {
+      void this.handleCreateAccount();
+    });
 
     // Transactions
-    html.find('[data-action="deposit"]').on("click", () => this.handleDeposit());
-    html.find('[data-action="withdraw"]').on("click", () => this.handleWithdraw());
-    html.find('[data-action="transfer"]').on("click", () => this.handleTransfer());
+    html.find('[data-action="deposit"]').on("click", () => {
+      void this.handleDeposit();
+    });
+    html.find('[data-action="withdraw"]').on("click", () => {
+      void this.handleWithdraw();
+    });
+    html.find('[data-action="transfer"]').on("click", () => {
+      void this.handleTransfer();
+    });
 
     log("Bank dialog listeners activated");
   }
@@ -104,7 +119,8 @@ export class BankDialog extends Application {
   private async handleCreateAccount(): Promise<void> {
     const banks = BankManager.getBanks();
     if (banks.length === 0) {
-      ui.notifications?.warn("No banks available. Ask your GM to create one.");
+      const notifications = ui.notifications as Notifications | undefined;
+      notifications?.warn("No banks available. Ask your GM to create one.");
       return;
     }
 
@@ -112,7 +128,12 @@ export class BankDialog extends Application {
     const bankOptions = banks
       .map((bank) => {
         const currencies = EconomyManager.getCurrencies(bank.economyId);
-        return currencies.map((c) => `<option value="${bank.id}|${c.id}">${bank.name} - ${c.name} (${c.abbreviation})</option>`).join("");
+        return currencies
+          .map(
+            (c) =>
+              `<option value="${bank.id}|${c.id}">${bank.name} - ${c.name} (${c.abbreviation})</option>`
+          )
+          .join("");
       })
       .join("");
 
@@ -142,7 +163,7 @@ export class BankDialog extends Application {
       rejectClose: false,
     });
 
-    if (result && result.bankCurrency) {
+    if (result?.bankCurrency) {
       const [bankId, currencyId] = result.bankCurrency.split("|");
       const response = await BankManager.createAccount(
         bankId,
@@ -152,12 +173,13 @@ export class BankDialog extends Application {
         result.name
       );
 
+      const notifications = ui.notifications as Notifications | undefined;
       if (response.success) {
-        ui.notifications?.info("Account created!");
+        notifications?.info("Account created!");
         this.selectedAccountId = response.data?.id ?? null;
         this.render();
       } else {
-        ui.notifications?.error(response.error ?? "Failed to create account");
+        notifications?.error(response.error ?? "Failed to create account");
       }
     }
   }
@@ -202,11 +224,12 @@ export class BankDialog extends Application {
         this.actorId
       );
 
+      const notifications = ui.notifications as Notifications | undefined;
       if (response.success) {
-        ui.notifications?.info(`Deposited ${result.amount} ${currency?.abbreviation ?? ""}`);
+        notifications?.info(`Deposited ${result.amount} ${currency?.abbreviation ?? ""}`);
         this.render();
       } else {
-        ui.notifications?.error(response.error ?? "Deposit failed");
+        notifications?.error(response.error ?? "Deposit failed");
       }
     }
   }
@@ -252,11 +275,12 @@ export class BankDialog extends Application {
         this.actorId
       );
 
+      const notifications = ui.notifications as Notifications | undefined;
       if (response.success) {
-        ui.notifications?.info(`Withdrew ${result.amount} ${currency?.abbreviation ?? ""}`);
+        notifications?.info(`Withdrew ${result.amount} ${currency?.abbreviation ?? ""}`);
         this.render();
       } else {
-        ui.notifications?.error(response.error ?? "Withdrawal failed");
+        notifications?.error(response.error ?? "Withdrawal failed");
       }
     }
   }
@@ -274,7 +298,8 @@ export class BankDialog extends Application {
     const otherAccounts = allAccounts.filter((a) => a.id !== this.selectedAccountId && a.isActive);
 
     if (otherAccounts.length === 0) {
-      ui.notifications?.warn("No other accounts available for transfer.");
+      const notifications = ui.notifications as Notifications | undefined;
+      notifications?.warn("No other accounts available for transfer.");
       return;
     }
 
@@ -326,11 +351,12 @@ export class BankDialog extends Application {
         this.actorId
       );
 
+      const notifications = ui.notifications as Notifications | undefined;
       if (response.success) {
-        ui.notifications?.info(`Transferred ${result.amount} ${currency?.abbreviation ?? ""}`);
+        notifications?.info(`Transferred ${result.amount} ${currency?.abbreviation ?? ""}`);
         this.render();
       } else {
-        ui.notifications?.error(response.error ?? "Transfer failed");
+        notifications?.error(response.error ?? "Transfer failed");
       }
     }
   }
@@ -344,4 +370,3 @@ export const openBankDialog = (actorId: string, actorName: string): BankDialog =
   dialog.render(true);
   return dialog;
 };
-
