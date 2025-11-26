@@ -26,6 +26,7 @@ jobs:
         with:
           name: dist
           path: dist/
+          retention-days: 1
 
   test:
     name: Test
@@ -69,14 +70,29 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Debug info
+        run: |
+          echo "Branch: ${{ github.ref }}"
+          echo "Event: ${{ github.event_name }}"
+          echo "SHA: ${{ github.sha }}"
+
       - uses: actions/download-artifact@v4
         with:
           name: dist
           path: dist/
 
+      - name: Verify artifact
+        run: |
+          echo "Contents of dist:"
+          ls -la dist/
+          ls -la dist/scripts/ || echo "No scripts folder"
+
       - name: Get version
         id: v
-        run: echo "ver=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+        run: |
+          VER=$(node -p "require('./package.json').version")
+          echo "Version: $VER"
+          echo "ver=$VER" >> $GITHUB_OUTPUT
 
       - name: Package module
         run: |
@@ -86,22 +102,29 @@ jobs:
           cp -r templates languages release/example-module/
           cp README.md LICENSE CHANGELOG.md release/example-module/ 2>/dev/null || true
           VERSION="${{ steps.v.outputs.ver }}"
+          echo "Packaging version: $VERSION"
           sed -i "s|#{VERSION}#|$VERSION|g" release/example-module/module.json
           sed -i "s|#{MANIFEST_URL}#|https://github.com/${{ github.repository }}/releases/latest/download/module.json|g" release/example-module/module.json
           sed -i "s|#{DOWNLOAD_URL}#|https://github.com/${{ github.repository }}/releases/download/v$VERSION/module.zip|g" release/example-module/module.json
           cd release && zip -r ../module.zip example-module
           cp example-module/module.json ../module-release.json
+          echo "Package contents:"
+          ls -la ../module.zip ../module-release.json
 
-      - name: Delete existing release
+      - name: Delete old release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release delete "v${{ steps.v.outputs.ver }}" --yes 2>/dev/null || true
+        run: |
+          echo "Deleting v${{ steps.v.outputs.ver }} if exists..."
+          gh release delete "v${{ steps.v.outputs.ver }}" --yes 2>/dev/null || echo "No existing release"
 
       - name: Create release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          echo "Creating release v${{ steps.v.outputs.ver }}..."
           gh release create "v${{ steps.v.outputs.ver }}" \
             --title "v${{ steps.v.outputs.ver }}" \
-            --notes "**Manifest URL:** https://github.com/${{ github.repository }}/releases/latest/download/module.json" \
+            --notes "Manifest: https://github.com/${{ github.repository }}/releases/latest/download/module.json" \
             module.zip module-release.json
+          echo "Release created!"
