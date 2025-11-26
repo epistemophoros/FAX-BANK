@@ -1,5 +1,11 @@
 import { MODULE_ID } from "../constants";
 
+// Type for i18n API
+interface I18nAPI {
+  localize: (key: string) => string;
+  format: (key: string, data: Record<string, string>) => string;
+}
+
 /**
  * Localize a string using Foundry's localization system
  */
@@ -7,7 +13,8 @@ export const localize = (key: string): string => {
   if (!(game instanceof Game) || !game.i18n) {
     return key;
   }
-  return game.i18n.localize(`${MODULE_ID}.${key}`);
+  const i18n = game.i18n as unknown as I18nAPI;
+  return i18n.localize(`${MODULE_ID}.${key}`);
 };
 
 /**
@@ -17,7 +24,8 @@ export const format = (key: string, data: Record<string, string>): string => {
   if (!(game instanceof Game) || !game.i18n) {
     return key;
   }
-  return game.i18n.format(`${MODULE_ID}.${key}`, data);
+  const i18n = game.i18n as unknown as I18nAPI;
+  return i18n.format(`${MODULE_ID}.${key}`, data);
 };
 
 /**
@@ -42,13 +50,14 @@ export const mergeObjects = <T extends object>(
  * Check if the current user is a GM
  */
 export const isGM = (): boolean => {
-  return game instanceof Game && (game.user?.isGM ?? false);
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  return Boolean(game instanceof Game && (game.user as { isGM?: boolean })?.isGM);
 };
 
 /**
  * Get the current user
  */
-export const getCurrentUser = (): User | null => {
+export const getCurrentUser = (): unknown => {
   if (game instanceof Game) {
     return game.user ?? null;
   }

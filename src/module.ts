@@ -18,8 +18,8 @@ const handleInit = (): void => {
 const handleReady = (): void => {
   log("Module ready!");
 
-  // Example: Register a button in the settings tab
-  if (game instanceof Game && game.user?.isGM) {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  if (game instanceof Game && (game.user as { isGM?: boolean })?.isGM) {
     log("User is GM, additional features enabled");
   }
 };
@@ -44,9 +44,9 @@ Hooks.once("ready", () => {
   };
 
   if (game instanceof Game) {
-    const module = game.modules.get(MODULE_ID);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+    const module = (game.modules as any).get(MODULE_ID) as { api?: typeof moduleApi } | undefined;
     if (module) {
-      // @ts-expect-error - Extending module with custom API
       module.api = moduleApi;
     }
   }

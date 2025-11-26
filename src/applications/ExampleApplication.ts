@@ -34,11 +34,13 @@ export class ExampleApplication extends Application {
    */
   override getData(): ExampleAppData {
     const customMessage = getSetting<string>(SETTINGS.CUSTOM_MESSAGE);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    const isGM = Boolean(game instanceof Game && (game.user as { isGM?: boolean })?.isGM);
 
     return {
       title: MODULE_NAME,
       message: customMessage,
-      isGM: game instanceof Game && (game.user?.isGM ?? false),
+      isGM,
       timestamp: new Date().toLocaleString(),
     };
   }
