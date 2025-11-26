@@ -56,6 +56,10 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           PR=$(gh pr list --head development --base main --json number -q '.[0].number' || echo "")
-          [ -z "$PR" ] && gh pr create --head development --base main \
-            --title "Release v${{ steps.v.outputs.ver }}" \
-            --body "Merge development into main for v${{ steps.v.outputs.ver }}"
+          if [ -z "$PR" ]; then
+            gh pr create --head development --base main \
+              --title "Release v${{ steps.v.outputs.ver }}" \
+              --body "Merge development into main for v${{ steps.v.outputs.ver }}"
+          else
+            echo "PR #$PR already exists"
+          fi
