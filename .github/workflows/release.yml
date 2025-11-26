@@ -1,0 +1,107 @@
+name: Release
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [development, main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_branch }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - run: npm ci
+      - run: npm run build
+
+      - name: Get info
+        id: info
+        run: |
+          BRANCH="${{ github.event.workflow_run.head_branch }}"
+          VER=$(node -p "require('./package.json').version")
+          if [ "$BRANCH" = "development" ]; then
+            echo "tag=v${VER}-dev.${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+            echo "prerelease=true" >> $GITHUB_OUTPUT
+            echo "title=Dev ${VER}-dev.${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=v${VER}" >> $GITHUB_OUTPUT
+            echo "prerelease=false" >> $GITHUB_OUTPUT
+            echo "title=v${VER}" >> $GITHUB_OUTPUT
+          fi
+          echo "branch=$BRANCH" >> $GITHUB_OUTPUT
+          echo "ver=$VER" >> $GITHUB_OUTPUT
+
+      - name: Check if stable release exists
+        if: steps.info.outputs.branch == 'main'
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh release view "${{ steps.info.outputs.tag }}" &>/dev/null; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Package module
+        if: steps.info.outputs.branch == 'development' || steps.check.outputs.exists == 'false'
+        run: |
+          mkdir -p release/example-module
+          cp -r dist/* release/example-module/
+          cp module.json release/example-module/
+          cp -r templates languages release/example-module/
+          cp README.md LICENSE CHANGELOG.md release/example-module/ 2>/dev/null || true
+          TAG="${{ steps.info.outputs.tag }}"
+          VER="${TAG#v}"
+          if [ "${{ steps.info.outputs.branch }}" = "main" ]; then
+            MANIFEST="https://github.com/${{ github.repository }}/releases/latest/download/module.json"
+          else
+            MANIFEST="https://github.com/${{ github.repository }}/releases/download/$TAG/module.json"
+          fi
+          sed -i "s|#{VERSION}#|$VER|g" release/example-module/module.json
+          sed -i "s|#{MANIFEST_URL}#|$MANIFEST|g" release/example-module/module.json
+          sed -i "s|#{DOWNLOAD_URL}#|https://github.com/${{ github.repository }}/releases/download/$TAG/module.zip|g" release/example-module/module.json
+          cd release && zip -r ../module.zip example-module
+          cp example-module/module.json ../module-release.json
+
+      - name: Create release
+        if: steps.info.outputs.branch == 'development' || steps.check.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release delete "${{ steps.info.outputs.tag }}" --yes 2>/dev/null || true
+          PRERELEASE=""
+          if [ "${{ steps.info.outputs.prerelease }}" = "true" ]; then
+            PRERELEASE="--prerelease"
+          fi
+          gh release create "${{ steps.info.outputs.tag }}" \
+            --title "${{ steps.info.outputs.title }}" \
+            --notes "Manifest: https://github.com/${{ github.repository }}/releases/download/${{ steps.info.outputs.tag }}/module.json" \
+            $PRERELEASE \
+            module.zip module-release.json
+
+      - name: Create PR (development only)
+        if: steps.info.outputs.branch == 'development'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR=$(gh pr list --head development --base main --json number -q '.[0].number' || echo "")
+          if [ -z "$PR" ]; then
+            gh pr create --head development --base main \
+              --title "Release v${{ steps.info.outputs.ver }}" \
+              --body "Merge development into main for release v${{ steps.info.outputs.ver }}"
+          fi
+
