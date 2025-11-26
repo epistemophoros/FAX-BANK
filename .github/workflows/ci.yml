@@ -126,16 +126,16 @@ jobs:
       - name: Package module
         run: |
           VERSION="${{ steps.v.outputs.ver }}"
-          mkdir -p release/example-module
-          cp -r dist/* release/example-module/
-          cp module.json release/example-module/
-          cp -r templates languages release/example-module/
-          cp README.md LICENSE CHANGELOG.md release/example-module/ 2>/dev/null || true
-          sed -i "s|#{VERSION}#|$VERSION|g" release/example-module/module.json
-          sed -i "s|#{MANIFEST_URL}#|https://github.com/${{ github.repository }}/releases/latest/download/module.json|g" release/example-module/module.json
-          sed -i "s|#{DOWNLOAD_URL}#|https://github.com/${{ github.repository }}/releases/download/v$VERSION/module.zip|g" release/example-module/module.json
-          cd release && zip -r ../module.zip example-module
-          cp example-module/module.json ../module.json
+          mkdir -p release/fax-bank
+          cp -r dist/* release/fax-bank/
+          cp module.json release/fax-bank/
+          cp -r templates languages release/fax-bank/
+          cp README.md LICENSE CHANGELOG.md release/fax-bank/ 2>/dev/null || true
+          sed -i "s|#{VERSION}#|$VERSION|g" release/fax-bank/module.json
+          sed -i "s|#{MANIFEST_URL}#|https://github.com/${{ github.repository }}/releases/latest/download/module.json|g" release/fax-bank/module.json
+          sed -i "s|#{DOWNLOAD_URL}#|https://github.com/${{ github.repository }}/releases/download/v$VERSION/module.zip|g" release/fax-bank/module.json
+          cd release && zip -r ../module.zip fax-bank
+          cp fax-bank/module.json ../module.json
 
       - name: Create release
         env:

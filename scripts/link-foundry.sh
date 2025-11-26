@@ -5,7 +5,7 @@
 
 set -e
 
-MODULE_ID="example-module"
+MODULE_ID="fax-bank"
 
 echo "🔗 Foundry VTT Module Linker"
 echo ""

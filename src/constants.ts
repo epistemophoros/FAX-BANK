@@ -1,12 +1,12 @@
 /**
  * Module identifier - must match the "id" in module.json
  */
-export const MODULE_ID = "example-module" as const;
+export const MODULE_ID = "fax-bank" as const;
 
 /**
  * Human-readable module name
  */
-export const MODULE_NAME = "Example Module" as const;
+export const MODULE_NAME = "FAX-BANK" as const;
 
 /**
  * Template paths for the module

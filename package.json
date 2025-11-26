@@ -1,5 +1,5 @@
 {
-  "name": "foundry-example-module",
+  "name": "fax-bank",
   "version": "1.0.00",
   "description": "An example Foundry VTT module with CI/CD",
   "type": "module",
