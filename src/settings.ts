@@ -1,19 +1,28 @@
 import { MODULE_ID, MODULE_NAME, SETTINGS } from "./constants";
 import { log } from "./utils/logger";
 
+// Type for game object with settings
+type GameWithSettings = {
+  settings?: {
+    register: (module: string, key: string, data: object) => void;
+    get: (module: string, key: string) => unknown;
+    set: (module: string, key: string, value: unknown) => Promise<unknown>;
+  };
+};
+
 /**
  * Register module settings in Foundry
  */
 export const registerSettings = (): void => {
   log("Registering settings...");
 
-  if (!(game instanceof Game) || !game.settings) {
+  const gameObj = game as GameWithSettings | undefined;
+  if (!gameObj?.settings) {
     return;
   }
 
   // Enable Feature Toggle
-  // @ts-expect-error - Module ID is valid at runtime
-  game.settings.register(MODULE_ID, SETTINGS.ENABLE_FEATURE, {
+  gameObj.settings.register(MODULE_ID, SETTINGS.ENABLE_FEATURE, {
     name: `${MODULE_NAME}: Enable Feature`,
     hint: "Toggle the main feature of this module on or off.",
     scope: "world",
@@ -24,8 +33,7 @@ export const registerSettings = (): void => {
   });
 
   // Debug Mode Toggle
-  // @ts-expect-error - Module ID is valid at runtime
-  game.settings.register(MODULE_ID, SETTINGS.DEBUG_MODE, {
+  gameObj.settings.register(MODULE_ID, SETTINGS.DEBUG_MODE, {
     name: `${MODULE_NAME}: Debug Mode`,
     hint: "Enable debug logging for troubleshooting.",
     scope: "client",
@@ -36,8 +44,7 @@ export const registerSettings = (): void => {
   });
 
   // Custom Message Setting
-  // @ts-expect-error - Module ID is valid at runtime
-  game.settings.register(MODULE_ID, SETTINGS.CUSTOM_MESSAGE, {
+  gameObj.settings.register(MODULE_ID, SETTINGS.CUSTOM_MESSAGE, {
     name: `${MODULE_NAME}: Custom Message`,
     hint: "Set a custom message to display.",
     scope: "world",
@@ -54,22 +61,22 @@ export const registerSettings = (): void => {
  * Get a setting value with type safety
  */
 export const getSetting = <T>(key: string): T => {
-  if (!(game instanceof Game) || !game.settings) {
+  const gameObj = game as GameWithSettings | undefined;
+  if (!gameObj?.settings) {
     return "" as T;
   }
-  // @ts-expect-error - Module ID is valid at runtime
-  return game.settings.get(MODULE_ID, key) as T;
+  return gameObj.settings.get(MODULE_ID, key) as T;
 };
 
 /**
  * Set a setting value
  */
 export const setSetting = async <T>(key: string, value: T): Promise<T> => {
-  if (!(game instanceof Game) || !game.settings) {
+  const gameObj = game as GameWithSettings | undefined;
+  if (!gameObj?.settings) {
     return value;
   }
-  // @ts-expect-error - Module ID is valid at runtime
-  return (await game.settings.set(MODULE_ID, key, value)) as T;
+  return (await gameObj.settings.set(MODULE_ID, key, value)) as T;
 };
 
 /**

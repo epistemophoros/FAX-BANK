@@ -16,17 +16,17 @@ interface ExampleAppData {
  * Example Application window for the module
  */
 export class ExampleApplication extends Application {
-  static override get defaultOptions(): typeof Application.defaultOptions {
+  static override get defaultOptions(): ApplicationOptions {
     return foundry.utils.mergeObject(super.defaultOptions, {
       id: `${MODULE_ID}-app`,
       title: MODULE_NAME,
       template: TEMPLATES.EXAMPLE_APP,
       classes: [MODULE_ID, "sheet"],
       width: 400,
-      height: "auto",
+      height: "auto" as const,
       resizable: true,
       minimizable: true,
-    });
+    }) as ApplicationOptions;
   }
 
   /**
@@ -34,11 +34,13 @@ export class ExampleApplication extends Application {
    */
   override getData(): ExampleAppData {
     const customMessage = getSetting<string>(SETTINGS.CUSTOM_MESSAGE);
+    const gameObj = game as { user?: { isGM?: boolean } } | undefined;
+    const isGM = Boolean(gameObj?.user?.isGM);
 
     return {
       title: MODULE_NAME,
       message: customMessage,
-      isGM: game instanceof Game && (game.user?.isGM ?? false),
+      isGM,
       timestamp: new Date().toLocaleString(),
     };
   }

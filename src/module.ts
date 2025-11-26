@@ -4,6 +4,12 @@ import { registerSettings } from "./settings";
 import { ExampleApplication } from "./applications/ExampleApplication";
 import { log } from "./utils/logger";
 
+// Type for game object
+type GameType = {
+  user?: { isGM?: boolean };
+  modules?: { get: (id: string) => { api?: unknown } | undefined };
+};
+
 /**
  * Initialize the module when Foundry is ready
  */
@@ -18,8 +24,8 @@ const handleInit = (): void => {
 const handleReady = (): void => {
   log("Module ready!");
 
-  // Example: Register a button in the settings tab
-  if (game instanceof Game && game.user?.isGM) {
+  const gameObj = game as GameType | undefined;
+  if (gameObj?.user?.isGM) {
     log("User is GM, additional features enabled");
   }
 };
@@ -43,10 +49,10 @@ Hooks.once("ready", () => {
     name: MODULE_NAME,
   };
 
-  if (game instanceof Game) {
-    const module = game.modules.get(MODULE_ID);
+  const gameObj = game as GameType | undefined;
+  if (gameObj?.modules) {
+    const module = gameObj.modules.get(MODULE_ID);
     if (module) {
-      // @ts-expect-error - Extending module with custom API
       module.api = moduleApi;
     }
   }
