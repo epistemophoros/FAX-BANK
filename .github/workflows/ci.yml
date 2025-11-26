@@ -51,15 +51,30 @@ jobs:
     if: github.ref == 'refs/heads/development' && github.event_name == 'push'
     steps:
       - uses: actions/checkout@v4
-      - id: v
-        run: echo "ver=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
-      - env:
+        with:
+          fetch-depth: 0
+      - name: Create or update PR
+        env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VERSION: ${{ steps.v.outputs.ver }}
         run: |
           PR=$(gh pr list --head development --base main --state open --json number --jq '.[0].number // empty')
+          
+          # Get recent commits for PR body
+          COMMITS=$(git log origin/main..HEAD --oneline --no-merges | head -20)
+          
+          BODY="## Update Codebase
+          
+          ### Changes from development:
+          \`\`\`
+          ${COMMITS}
+          \`\`\`
+          
+          Merging will auto-create a new release with version bump."
+          
           if [ -z "$PR" ]; then
-            gh pr create --head development --base main --title "Release v${VERSION}" --body "Merge development to main for v${VERSION}"
+            gh pr create --head development --base main --title "Update Codebase" --body "$BODY"
+          else
+            gh pr edit "$PR" --body "$BODY"
           fi
 
   release:
