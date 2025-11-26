@@ -1,106 +1,118 @@
+/**
+ * FAX-BANK Helper Utilities
+ */
+
 import { MODULE_ID } from "../constants";
 
 // Type for game object with i18n
 type GameWithI18n = {
   i18n?: {
     localize: (key: string) => string;
-    format: (key: string, data: Record<string, string>) => string;
+    format: (key: string, data?: Record<string, string | number>) => string;
   };
-  user?: { isGM?: boolean } | null;
 };
 
 /**
- * Localize a string using Foundry's localization system
+ * Localize a string using Foundry's i18n
  */
 export const localize = (key: string): string => {
   const gameObj = game as GameWithI18n | undefined;
-  if (!gameObj?.i18n) {
-    return key;
-  }
-  return gameObj.i18n.localize(`${MODULE_ID}.${key}`);
+  if (!gameObj?.i18n) return key;
+  return gameObj.i18n.localize(key);
 };
 
 /**
- * Format a localized string with substitutions
+ * Localize a string with data interpolation
  */
-export const format = (key: string, data: Record<string, string>): string => {
+export const format = (key: string, data: Record<string, string | number>): string => {
   const gameObj = game as GameWithI18n | undefined;
-  if (!gameObj?.i18n) {
-    return key;
+  if (!gameObj?.i18n) return key;
+  return gameObj.i18n.format(key, data);
+};
+
+/**
+ * Format a number as currency
+ */
+export const formatCurrency = (
+  amount: number,
+  symbol = "",
+  abbreviation = "",
+  displayMode: "symbol" | "abbreviation" | "full" = "abbreviation"
+): string => {
+  const formattedAmount = amount.toLocaleString(undefined, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  });
+
+  switch (displayMode) {
+    case "symbol":
+      return `${symbol} ${formattedAmount}`;
+    case "abbreviation":
+      return `${formattedAmount} ${abbreviation}`;
+    case "full":
+      return formattedAmount;
+    default:
+      return formattedAmount;
   }
-  return gameObj.i18n.format(`${MODULE_ID}.${key}`, data);
 };
 
 /**
- * Deep clone an object safely
+ * Format a timestamp to a readable date string
  */
-export const deepClone = <T>(obj: T): T => {
-  return foundry.utils.deepClone(obj);
+export const formatDate = (timestamp: number, includeTime = true): string => {
+  const date = new Date(timestamp);
+  const options: Intl.DateTimeFormatOptions = {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  };
+
+  if (includeTime) {
+    options.hour = "2-digit";
+    options.minute = "2-digit";
+  }
+
+  return date.toLocaleDateString(undefined, options);
 };
 
 /**
- * Merge objects with Foundry's mergeObject utility
+ * Generate a random color hex code
  */
-export const mergeObjects = <T extends object>(
-  original: T,
-  updates: Partial<T>,
-  options?: { insertKeys?: boolean; insertValues?: boolean; overwrite?: boolean }
-): T => {
-  return foundry.utils.mergeObject(original, updates, options) as T;
+export const randomColor = (): string => {
+  return `#${Math.floor(Math.random() * 16777215)
+    .toString(16)
+    .padStart(6, "0")}`;
+};
+
+/**
+ * Debounce a function
+ */
+export const debounce = <T extends (...args: Parameters<T>) => unknown>(
+  func: T,
+  wait: number
+): ((...args: Parameters<T>) => void) => {
+  let timeout: ReturnType<typeof setTimeout> | null = null;
+
+  return (...args: Parameters<T>) => {
+    if (timeout) {
+      clearTimeout(timeout);
+    }
+    timeout = setTimeout(() => func(...args), wait);
+  };
 };
 
 /**
  * Check if the current user is a GM
  */
 export const isGM = (): boolean => {
-  const gameObj = game as GameWithI18n | undefined;
-  return Boolean(gameObj?.user?.isGM);
+  const gameObj = game as { user?: { isGM?: boolean } } | undefined;
+  return gameObj?.user?.isGM ?? false;
 };
 
 /**
- * Get the current user
+ * Get the module version
  */
-export const getCurrentUser = (): unknown => {
-  const gameObj = game as GameWithI18n | undefined;
-  return gameObj?.user ?? null;
-};
-
-/**
- * Generate a unique ID
- */
-export const generateId = (): string => {
-  return foundry.utils.randomID();
-};
-
-/**
- * Debounce a function
- */
-export const debounce = <T extends (...args: Parameters<T>) => ReturnType<T>>(
-  fn: T,
-  delay: number
-): ((...args: Parameters<T>) => void) => {
-  let timeoutId: ReturnType<typeof setTimeout>;
-
-  return (...args: Parameters<T>): void => {
-    clearTimeout(timeoutId);
-    timeoutId = setTimeout(() => fn(...args), delay);
-  };
-};
-
-/**
- * Throttle a function
- */
-export const throttle = <T extends (...args: Parameters<T>) => ReturnType<T>>(
-  fn: T,
-  limit: number
-): ((...args: Parameters<T>) => void) => {
-  let inThrottle = false;
-
-  return (...args: Parameters<T>): void => {
-    if (!inThrottle) {
-      fn(...args);
-      inThrottle = true;
-      setTimeout(() => (inThrottle = false), limit);
-    }
-  };
+export const getModuleVersion = (): string => {
+  const gameObj = game as { modules?: { get: (id: string) => { version?: string } | undefined } } | undefined;
+  return gameObj?.modules?.get(MODULE_ID)?.version ?? "unknown";
 };
