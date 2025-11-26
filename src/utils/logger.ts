@@ -21,7 +21,8 @@ const isDebugEnabled = (): boolean => {
     if (!(game instanceof Game) || !game.settings) {
       return false;
     }
-    return ((game.settings as ClientSettings).get(MODULE_ID, "debugMode") as boolean) ?? false;
+    // @ts-expect-error - Module ID is valid at runtime
+    return (game.settings.get(MODULE_ID, "debugMode") as boolean) ?? false;
   } catch {
     return false;
   }
