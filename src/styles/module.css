@@ -672,3 +672,74 @@
   background: var(--fax-bank-primary) !important;
   color: white !important;
 }
+
+/* ==================== SETTINGS MENU ==================== */
+
+.fax-bank-settings-menu {
+  padding: 16px;
+}
+
+.fax-bank-settings-menu .menu-header {
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.fax-bank-settings-menu .menu-header h2 {
+  margin: 0;
+  font-size: 1.3rem;
+}
+
+.fax-bank-settings-menu .menu-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.fax-bank-btn {
+  display: block;
+  width: 100%;
+  padding: 12px 16px;
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.fax-bank-btn i {
+  margin-right: 8px;
+}
+
+.fax-bank-btn-primary {
+  background: #2d5a27;
+  color: white;
+}
+
+.fax-bank-btn-primary:hover {
+  background: #3d7a37;
+}
+
+.fax-bank-btn-secondary {
+  background: #444;
+  color: white;
+}
+
+.fax-bank-btn-secondary:hover {
+  background: #555;
+}
+
+.fax-bank-settings-menu .menu-help {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+  padding: 10px;
+  font-size: 0.85rem;
+}
+
+.fax-bank-settings-menu .menu-help code {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: monospace;
+}

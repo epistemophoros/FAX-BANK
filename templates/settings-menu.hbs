@@ -1,0 +1,21 @@
+<div class="fax-bank-settings-menu">
+  <div class="menu-header">
+    <h2><i class="fas fa-university"></i> FAX-BANK</h2>
+  </div>
+
+  <div class="menu-buttons">
+    {{#if isGM}}
+    <button type="button" id="fax-bank-open-admin" class="fax-bank-btn fax-bank-btn-primary">
+      <i class="fas fa-cogs"></i> Open Admin Panel
+    </button>
+    {{/if}}
+
+    <button type="button" id="fax-bank-open-bank" class="fax-bank-btn fax-bank-btn-secondary">
+      <i class="fas fa-wallet"></i> Open Bank (Selected Token)
+    </button>
+  </div>
+
+  <div class="menu-help">
+    <p><strong>Console:</strong> <code>FAXBANK.openAdmin()</code> or <code>FAXBANK.openBank()</code></p>
+  </div>
+</div>
