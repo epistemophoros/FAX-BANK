@@ -78,19 +78,7 @@ jobs:
         id: v
         run: echo "ver=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
 
-      - name: Check if release exists
-        id: check
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          if gh release view "v${{ steps.v.outputs.ver }}" &>/dev/null; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-          else
-            echo "exists=false" >> $GITHUB_OUTPUT
-          fi
-
       - name: Package module
-        if: steps.check.outputs.exists == 'false'
         run: |
           mkdir -p release/example-module
           cp -r dist/* release/example-module/
@@ -104,8 +92,12 @@ jobs:
           cd release && zip -r ../module.zip example-module
           cp example-module/module.json ../module-release.json
 
+      - name: Delete existing release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release delete "v${{ steps.v.outputs.ver }}" --yes 2>/dev/null || true
+
       - name: Create release
-        if: steps.check.outputs.exists == 'false'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
