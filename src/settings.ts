@@ -27,8 +27,8 @@ export const registerSettings = (): void => {
 
   // Show Bank Button on Token HUD
   gameObj.settings.register(MODULE_ID, SETTINGS.ENABLE_FEATURE, {
-    name: `${MODULE_NAME}: Show Bank on Token HUD`,
-    hint: "Show the bank button on the Token HUD for quick access.",
+    name: "Show Bank on Token HUD",
+    hint: "Display a bank button (🏦) on the Token HUD for quick access to character banking.",
     scope: "world",
     config: true,
     type: Boolean,
@@ -38,8 +38,8 @@ export const registerSettings = (): void => {
 
   // Enable Shift+Click on Tokens
   gameObj.settings.register(MODULE_ID, SETTINGS.DEBUG_MODE, {
-    name: `${MODULE_NAME}: Shift+Click Opens Bank`,
-    hint: "Hold Shift and click a token to open their bank dialog.",
+    name: "Shift+Click Opens Bank",
+    hint: "Hold Shift and click on any token to instantly open their bank dialog.",
     scope: "world",
     config: true,
     type: Boolean,
@@ -49,8 +49,8 @@ export const registerSettings = (): void => {
 
   // Default Currency Display
   gameObj.settings.register(MODULE_ID, SETTINGS.CUSTOM_MESSAGE, {
-    name: `${MODULE_NAME}: Default Currency Format`,
-    hint: "How to display currency amounts (symbol, abbreviation, full).",
+    name: "Currency Display Format",
+    hint: "How currency amounts should be displayed throughout the module.",
     scope: "client",
     config: true,
     type: String,
@@ -72,9 +72,22 @@ export const registerSettings = (): void => {
 export const getSetting = <T>(key: string): T => {
   const gameObj = game as GameWithSettings | undefined;
   if (!gameObj?.settings) {
+    // Return defaults if settings not available
+    if (key === SETTINGS.ENABLE_FEATURE) return true as T;
+    if (key === SETTINGS.DEBUG_MODE) return true as T;
+    if (key === SETTINGS.CUSTOM_MESSAGE) return "abbreviation" as T;
     return "" as T;
   }
-  return gameObj.settings.get(MODULE_ID, key) as T;
+
+  try {
+    return gameObj.settings.get(MODULE_ID, key) as T;
+  } catch {
+    // Return defaults if setting doesn't exist yet
+    if (key === SETTINGS.ENABLE_FEATURE) return true as T;
+    if (key === SETTINGS.DEBUG_MODE) return true as T;
+    if (key === SETTINGS.CUSTOM_MESSAGE) return "abbreviation" as T;
+    return "" as T;
+  }
 };
 
 /**
@@ -100,4 +113,11 @@ export const isTokenHUDEnabled = (): boolean => {
  */
 export const isShiftClickEnabled = (): boolean => {
   return getSetting<boolean>(SETTINGS.DEBUG_MODE);
+};
+
+/**
+ * Get currency display format
+ */
+export const getCurrencyFormat = (): "symbol" | "abbreviation" | "full" => {
+  return getSetting<"symbol" | "abbreviation" | "full">(SETTINGS.CUSTOM_MESSAGE);
 };
