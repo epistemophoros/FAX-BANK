@@ -114,14 +114,14 @@ const showGMBankChoice = (bankName: string, npcActor: ActorType, playerActor: Ac
       bank: {
         icon: '<i class="fas fa-university"></i>',
         label: "Open Bank",
-        callback: () => {
+        callback: (): void => {
           openBankForActor(playerActor);
         },
       },
       sheet: {
         icon: '<i class="fas fa-user"></i>',
         label: "Open NPC Sheet",
-        callback: () => {
+        callback: (): void => {
           npcActor.sheet?.render(true);
         },
       },
@@ -176,7 +176,7 @@ const handleBankNPCInteraction = (npcActor: ActorType): void => {
           sheet: {
             icon: '<i class="fas fa-user"></i>',
             label: "Open NPC Sheet",
-            callback: () => {
+            callback: (): void => {
               npcActor.sheet?.render(true);
             },
           },
@@ -337,7 +337,10 @@ Hooks.on("canvasReady", () => {
   const canvasObj = canvas as
     | {
         stage?: {
-          on: (event: string, callback: (event: { data?: { originalEvent?: MouseEvent } }) => void) => void;
+          on: (
+            event: string,
+            callback: (event: { data?: { originalEvent?: MouseEvent } }) => void
+          ) => void;
         };
         tokens?: {
           placeables?: TokenType[];
