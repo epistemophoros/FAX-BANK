@@ -1,25 +1,22 @@
 <div class="fax-bank-admin">
   <header class="admin-header">
-    <h2>🏦 FAX-BANK Administration</h2>
+    <h2>🏦 FAX-BANK Admin</h2>
     <p class="system-info">
-      Game System: <strong>{{gameSystem}}</strong>
+      System: <strong>{{gameSystem}}</strong>
       {{#if isSupported}}
-        <span class="tag success">✅ Full Support</span>
+        <span class="tag success">✅ Supported</span>
       {{else}}
-        <span class="tag warning">⚠️ Custom Mode</span>
+        <span class="tag warning">⚠️ Custom</span>
       {{/if}}
     </p>
   </header>
 
   <nav class="admin-tabs">
-    <button type="button" class="tab-btn {{#if showAccess}}active{{/if}}" data-tab="access">
-      🎯 Quick Access
+    <button type="button" class="tab-btn {{#if showBanks}}active{{/if}}" data-tab="banks">
+      🏦 Banks
     </button>
     <button type="button" class="tab-btn {{#if showEconomies}}active{{/if}}" data-tab="economies">
       🏛️ Economies
-    </button>
-    <button type="button" class="tab-btn {{#if showBanks}}active{{/if}}" data-tab="banks">
-      🏦 Banks
     </button>
     <button type="button" class="tab-btn {{#if showAccounts}}active{{/if}}" data-tab="accounts">
       📋 Accounts
@@ -31,168 +28,12 @@
 
   <div class="admin-content">
     
-    {{!-- QUICK ACCESS TAB --}}
-    {{#if showAccess}}
-    <section class="tab-panel">
-      <div class="panel-section">
-        <h3>🎯 Open Bank for Character</h3>
-        <p class="hint">Click on a character to open their bank dialog directly.</p>
-        
-        {{#if playerCharacters.length}}
-          <div class="character-grid">
-            {{#each playerCharacters}}
-            <button type="button" class="character-card open-bank-btn" data-actor-id="{{this.id}}">
-              <i class="fas fa-user"></i>
-              <span class="character-name">{{this.name}}</span>
-            </button>
-            {{/each}}
-          </div>
-        {{else}}
-          <p class="empty-message">No player characters found.</p>
-        {{/if}}
-      </div>
-
-      <div class="panel-section">
-        <h3>🏦 Bank NPCs</h3>
-        <p class="hint">Your configured bank NPCs. Left-click these tokens on the canvas to access banks.</p>
-        
-        {{#if banks.length}}
-          <div class="bank-npc-grid">
-            {{#each banks}}
-            <div class="bank-npc-card">
-              <div class="bank-npc-info">
-                <strong>{{this.name}}</strong>
-                <span>{{this.economyName}}</span>
-              </div>
-              {{#if this.npcName}}
-                <span class="npc-badge">{{this.npcName}}</span>
-              {{else}}
-                <span class="npc-badge warning">No NPC</span>
-              {{/if}}
-            </div>
-            {{/each}}
-          </div>
-        {{else}}
-          <p class="empty-message">No banks configured. Go to the Banks tab to create one.</p>
-        {{/if}}
-      </div>
-    </section>
-    {{/if}}
-
-    {{!-- ECONOMIES TAB --}}
-    {{#if showEconomies}}
-    <section class="tab-panel">
-      <div class="panel-section">
-        <h3>➕ Create New Economy</h3>
-        <p class="hint">Economies represent kingdoms, factions, or regions with their own currencies.</p>
-        
-        <div class="form-grid">
-          <div class="form-field">
-            <label>Economy Name</label>
-            <input type="text" id="economy-name" placeholder="Kingdom of Valdris" />
-          </div>
-          <div class="form-field">
-            <label>Description</label>
-            <input type="text" id="economy-description" placeholder="The northern kingdom" />
-          </div>
-        </div>
-        
-        <h4>Base Currency</h4>
-        <div class="form-grid cols-3">
-          <div class="form-field">
-            <label>Name</label>
-            <input type="text" id="base-currency-name" placeholder="Gold" />
-          </div>
-          <div class="form-field">
-            <label>Abbreviation</label>
-            <input type="text" id="base-currency-abbrev" placeholder="gp" />
-          </div>
-          <div class="form-field">
-            <label>Symbol</label>
-            <input type="text" id="base-currency-symbol" placeholder="🪙" />
-          </div>
-        </div>
-        
-        <button type="button" id="create-economy-btn" class="btn primary">
-          <i class="fas fa-plus"></i> Create Economy
-        </button>
-      </div>
-
-      <div class="panel-section">
-        <h3>📜 Existing Economies ({{economies.length}})</h3>
-        
-        {{#if economies.length}}
-          {{#each economies}}
-          <div class="item-card economy-item" data-economy-id="{{this.id}}">
-            <div class="item-header">
-              <div class="item-title">
-                <strong>{{this.name}}</strong>
-                <span class="item-subtitle">{{this.description}}</span>
-              </div>
-              <button type="button" class="btn danger small delete-economy-btn" data-economy-id="{{this.id}}" title="Delete Economy">
-                <i class="fas fa-trash"></i>
-              </button>
-            </div>
-            
-            <div class="item-body">
-              <h5>💰 Currencies</h5>
-              <table class="mini-table">
-                <thead>
-                  <tr>
-                    <th>Symbol</th>
-                    <th>Name</th>
-                    <th>Abbrev</th>
-                    <th>Rate</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {{#each this.currencies}}
-                  <tr>
-                    <td>{{this.symbol}}</td>
-                    <td>{{this.name}}</td>
-                    <td>{{this.abbrev}}</td>
-                    <td>{{this.baseValue}}</td>
-                    <td>
-                      {{#if this.isBase}}
-                        <span class="tag gold">BASE</span>
-                      {{else}}
-                        <button type="button" class="btn danger mini remove-currency-btn" 
-                                data-economy-id="{{../id}}" data-currency-id="{{this.id}}" title="Remove">
-                          <i class="fas fa-times"></i>
-                        </button>
-                      {{/if}}
-                    </td>
-                  </tr>
-                  {{/each}}
-                </tbody>
-              </table>
-              
-              <div class="add-row">
-                <input type="text" class="new-currency-name" placeholder="Name" />
-                <input type="text" class="new-currency-abbrev" placeholder="Abbrev" />
-                <input type="text" class="new-currency-symbol" placeholder="Symbol" />
-                <input type="number" class="new-currency-value" placeholder="Rate" step="0.01" min="0.01" />
-                <button type="button" class="btn primary small add-currency-btn" data-economy-id="{{this.id}}">
-                  <i class="fas fa-plus"></i> Add
-                </button>
-              </div>
-            </div>
-          </div>
-          {{/each}}
-        {{else}}
-          <p class="empty-message">No economies yet. Create one above!</p>
-        {{/if}}
-      </div>
-    </section>
-    {{/if}}
-
     {{!-- BANKS TAB --}}
     {{#if showBanks}}
     <section class="tab-panel">
       <div class="panel-section">
-        <h3>➕ Create New Bank</h3>
-        <p class="hint">Banks belong to economies. Assign an NPC so players can left-click the token to access.</p>
+        <h3>➕ Create Bank</h3>
+        <p class="hint">Create a bank and assign an NPC. Players double-click that NPC to access the bank.</p>
         
         <div class="form-grid">
           <div class="form-field">
@@ -209,7 +50,7 @@
             </select>
           </div>
           <div class="form-field">
-            <label>Bank NPC</label>
+            <label>Bank NPC (Required)</label>
             <select id="bank-npc">
               <option value="">-- Select NPC --</option>
               {{#each availableActors}}
@@ -225,7 +66,7 @@
       </div>
 
       <div class="panel-section">
-        <h3>🏦 Existing Banks ({{banks.length}})</h3>
+        <h3>🏦 Your Banks ({{banks.length}})</h3>
         
         {{#if banks.length}}
           {{#each banks}}
@@ -233,41 +74,143 @@
             <div class="item-header">
               <div class="item-title">
                 <strong>{{this.name}}</strong>
-                <span class="item-subtitle">Economy: {{this.economyName}}</span>
+                <span class="item-subtitle">{{this.economyName}}</span>
               </div>
-              <button type="button" class="btn danger small delete-bank-btn" data-bank-id="{{this.id}}" title="Delete Bank">
+              <button type="button" class="btn danger small delete-bank-btn" data-bank-id="{{this.id}}">
                 <i class="fas fa-trash"></i>
               </button>
             </div>
             
             <div class="item-body">
               <div class="npc-assignment">
-                <label>Assigned NPC:</label>
+                <label>NPC:</label>
                 <select class="bank-npc-select">
-                  <option value="">-- No NPC --</option>
+                  <option value="">-- None --</option>
                   {{#each ../availableActors}}
                   <option value="{{this.id}}">{{this.name}}</option>
                   {{/each}}
                 </select>
                 <button type="button" class="btn primary small assign-npc-btn" data-bank-id="{{this.id}}">
-                  <i class="fas fa-save"></i> Save
+                  <i class="fas fa-save"></i>
                 </button>
                 {{#if this.npcName}}
-                <button type="button" class="btn small view-npc-btn" data-actor-id="{{this.npcActorId}}" title="View NPC Sheet">
+                <button type="button" class="btn small view-npc-btn" data-actor-id="{{this.npcActorId}}">
                   <i class="fas fa-eye"></i>
                 </button>
                 {{/if}}
               </div>
               {{#if this.npcName}}
-              <p class="npc-info">✅ NPC: <strong>{{this.npcName}}</strong> — Players left-click this token to open bank</p>
+              <p class="npc-info">✅ <strong>{{this.npcName}}</strong> — Double-click this NPC to open bank</p>
               {{else}}
-              <p class="npc-info warning">⚠️ No NPC assigned. Assign one so players can access this bank.</p>
+              <p class="npc-info warning">⚠️ No NPC assigned!</p>
               {{/if}}
             </div>
           </div>
           {{/each}}
         {{else}}
-          <p class="empty-message">No banks yet. Create an economy first, then add banks!</p>
+          <p class="empty-message">No banks. Create an economy first (Economies tab), then create a bank here.</p>
+        {{/if}}
+      </div>
+    </section>
+    {{/if}}
+
+    {{!-- ECONOMIES TAB --}}
+    {{#if showEconomies}}
+    <section class="tab-panel">
+      <div class="panel-section">
+        <h3>➕ Create Economy</h3>
+        <p class="hint">Economies have their own currencies. Create one before making banks.</p>
+        
+        <div class="form-grid">
+          <div class="form-field">
+            <label>Name</label>
+            <input type="text" id="economy-name" placeholder="Kingdom of Valdris" />
+          </div>
+          <div class="form-field">
+            <label>Description</label>
+            <input type="text" id="economy-description" placeholder="Northern kingdom" />
+          </div>
+        </div>
+        
+        <h4>Base Currency</h4>
+        <div class="form-grid cols-3">
+          <div class="form-field">
+            <label>Name</label>
+            <input type="text" id="base-currency-name" placeholder="Gold" />
+          </div>
+          <div class="form-field">
+            <label>Abbrev</label>
+            <input type="text" id="base-currency-abbrev" placeholder="gp" />
+          </div>
+          <div class="form-field">
+            <label>Symbol</label>
+            <input type="text" id="base-currency-symbol" placeholder="🪙" />
+          </div>
+        </div>
+        
+        <button type="button" id="create-economy-btn" class="btn primary">
+          <i class="fas fa-plus"></i> Create Economy
+        </button>
+      </div>
+
+      <div class="panel-section">
+        <h3>📜 Economies ({{economies.length}})</h3>
+        
+        {{#if economies.length}}
+          {{#each economies}}
+          <div class="item-card economy-item" data-economy-id="{{this.id}}">
+            <div class="item-header">
+              <div class="item-title">
+                <strong>{{this.name}}</strong>
+                <span class="item-subtitle">{{this.description}}</span>
+              </div>
+              <button type="button" class="btn danger small delete-economy-btn" data-economy-id="{{this.id}}">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+            
+            <div class="item-body">
+              <h5>💰 Currencies</h5>
+              <table class="mini-table">
+                <thead>
+                  <tr><th>Symbol</th><th>Name</th><th>Abbrev</th><th>Rate</th><th></th></tr>
+                </thead>
+                <tbody>
+                  {{#each this.currencies}}
+                  <tr>
+                    <td>{{this.symbol}}</td>
+                    <td>{{this.name}}</td>
+                    <td>{{this.abbrev}}</td>
+                    <td>{{this.baseValue}}</td>
+                    <td>
+                      {{#if this.isBase}}
+                        <span class="tag gold">BASE</span>
+                      {{else}}
+                        <button type="button" class="btn danger mini remove-currency-btn" 
+                                data-economy-id="{{../id}}" data-currency-id="{{this.id}}">
+                          <i class="fas fa-times"></i>
+                        </button>
+                      {{/if}}
+                    </td>
+                  </tr>
+                  {{/each}}
+                </tbody>
+              </table>
+              
+              <div class="add-row">
+                <input type="text" class="new-currency-name" placeholder="Name" />
+                <input type="text" class="new-currency-abbrev" placeholder="Abbrev" />
+                <input type="text" class="new-currency-symbol" placeholder="Symbol" />
+                <input type="number" class="new-currency-value" placeholder="Rate" step="0.01" min="0.01" />
+                <button type="button" class="btn primary small add-currency-btn" data-economy-id="{{this.id}}">
+                  <i class="fas fa-plus"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+          {{/each}}
+        {{else}}
+          <p class="empty-message">No economies yet.</p>
         {{/if}}
       </div>
     </section>
@@ -277,26 +220,18 @@
     {{#if showAccounts}}
     <section class="tab-panel">
       <div class="panel-section">
-        <h3>📋 All Bank Accounts ({{accounts.length}})</h3>
-        <p class="hint">View all player accounts across all banks.</p>
+        <h3>📋 All Accounts ({{accounts.length}})</h3>
         
         {{#if accounts.length}}
           <table class="data-table">
             <thead>
-              <tr>
-                <th>Owner</th>
-                <th>Bank</th>
-                <th>Economy</th>
-                <th>Balance</th>
-                <th>Transactions</th>
-              </tr>
+              <tr><th>Owner</th><th>Bank</th><th>Balance</th><th>Txns</th></tr>
             </thead>
             <tbody>
               {{#each accounts}}
               <tr>
                 <td><strong>{{this.ownerName}}</strong></td>
                 <td>{{this.bankName}}</td>
-                <td>{{this.economyName}}</td>
                 <td>{{this.balanceDisplay}}</td>
                 <td>{{this.transactionCount}}</td>
               </tr>
@@ -304,7 +239,7 @@
             </tbody>
           </table>
         {{else}}
-          <p class="empty-message">No accounts yet. Accounts are created when players deposit funds.</p>
+          <p class="empty-message">No accounts yet.</p>
         {{/if}}
       </div>
     </section>
@@ -314,37 +249,34 @@
     {{#if showHelp}}
     <section class="tab-panel">
       <div class="panel-section">
-        <h3>📖 How FAX-BANK Works</h3>
+        <h3>📖 How It Works</h3>
         
         <div class="help-item">
-          <h4>🏛️ Step 1: Create an Economy</h4>
-          <p>Go to Economies tab. Create an economy with a base currency.</p>
+          <h4>1. Create Economy</h4>
+          <p>Go to Economies tab. Create an economy with a base currency (e.g., Gold).</p>
         </div>
         
         <div class="help-item">
-          <h4>🏦 Step 2: Create a Bank</h4>
+          <h4>2. Create Bank + Assign NPC</h4>
           <p>Go to Banks tab. Create a bank and assign an NPC actor to it.</p>
         </div>
         
         <div class="help-item">
-          <h4>🎯 Step 3: Players Access Bank</h4>
-          <p><strong>Left-click</strong> the Bank NPC token on the canvas to open the bank.</p>
+          <h4>3. Place NPC Token</h4>
+          <p>Place the NPC on the scene. This is the "bank teller".</p>
         </div>
         
         <div class="help-item">
-          <h4>💵 What Players Can Do</h4>
-          <ul>
-            <li>Deposit currency (from character sheet)</li>
-            <li>Withdraw currency (to character sheet)</li>
-            <li>Transfer to other characters</li>
-          </ul>
+          <h4>4. Players Use Bank</h4>
+          <p><strong>Double-click</strong> the Bank NPC token → Bank dialog opens.</p>
+          <p>Players can deposit, withdraw, and transfer money.</p>
         </div>
         
         <div class="help-item">
-          <h4>🔧 Console Commands</h4>
-          <p><code>FAXBANK.openAdmin()</code> - Open this panel</p>
-          <p><code>FAXBANK.openBank('actorId')</code> - Open bank for actor</p>
-          <p><code>FAXBANK.listBanks()</code> - List all banks</p>
+          <h4>Console Commands</h4>
+          <p><code>FAXBANK.openAdmin()</code></p>
+          <p><code>FAXBANK.openBank('actorId')</code></p>
+          <p><code>FAXBANK.listBanks()</code></p>
         </div>
       </div>
     </section>
