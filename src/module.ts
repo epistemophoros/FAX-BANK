@@ -37,8 +37,20 @@ type ActorType = {
   name?: string;
   img?: string;
   type?: string;
-  sheet?: { render: (force: boolean) => void };
+  sheet?: { render: (force: boolean) => void; close: () => Promise<void> };
   getFlag?: (module: string, key: string) => unknown;
+};
+
+type TokenDocType = {
+  actor?: ActorType;
+  actorId?: string;
+};
+
+type TokenObjectType = {
+  id?: string;
+  document?: TokenDocType;
+  actor?: ActorType;
+  name?: string;
 };
 
 type NotificationsType = {
@@ -203,8 +215,28 @@ const handlePlayerBankInteraction = (bankName: string): void => {
   }
 
   // Open bank for the player's character
-  notifications?.info(`Opening ${bankName} for ${playerCharacter.name ?? "your character"}...`);
+  notifications?.info(`Opening ${bankName}...`);
   openBankForActor(playerCharacter);
+};
+
+/**
+ * Check if an actor is a Bank NPC and handle interaction
+ */
+const handleBankNPCCheck = (actor: ActorType): boolean => {
+  if (!actor?.id) return false;
+
+  const bank = getBankByNPC(actor.id);
+  if (!bank) return false;
+
+  const gameObj = game as GameType | undefined;
+
+  if (gameObj?.user?.isGM) {
+    showGMBankDialog(bank.name, actor);
+  } else {
+    handlePlayerBankInteraction(bank.name);
+  }
+
+  return true;
 };
 
 /**
@@ -288,30 +320,48 @@ Hooks.once("ready", () => {
 });
 
 /**
- * Intercept actor sheet opening for Bank NPCs
- * Players: Block sheet, open bank instead
- * GMs: Show choice dialog
+ * When actor sheet renders, check if it's a Bank NPC and close it / show bank instead
+ */
+Hooks.on("renderActorSheet", (sheet: Application, _html: JQuery, data: { actor?: ActorType }) => {
+  const actor = data.actor;
+  if (!actor?.id) return;
+
+  // Check if this is a Bank NPC
+  const bank = getBankByNPC(actor.id);
+  if (!bank) return;
+
+  // Close the sheet immediately
+  const sheetWithClose = sheet as Application & { close: () => Promise<void> };
+  void sheetWithClose.close();
+
+  // Show the bank interaction
+  const gameObj = game as GameType | undefined;
+
+  if (gameObj?.user?.isGM) {
+    showGMBankDialog(bank.name, actor);
+  } else {
+    handlePlayerBankInteraction(bank.name);
+  }
+});
+
+/**
+ * Add right-click context menu option to tokens
  */
 Hooks.on(
-  "preOpenActorSheet",
-  (actor: ActorType, _options: unknown, _userId: string): boolean | void => {
-    if (!actor?.id) return;
-
-    // Check if this actor is a Bank NPC
-    const bank = getBankByNPC(actor.id);
-    if (!bank) return; // Not a bank NPC, allow normal behavior
-
-    const gameObj = game as GameType | undefined;
-
-    if (gameObj?.user?.isGM) {
-      // GM: Show choice dialog
-      showGMBankDialog(bank.name, actor);
-      return false; // Prevent default sheet open
-    } else {
-      // Player: Open bank directly
-      handlePlayerBankInteraction(bank.name);
-      return false; // Prevent default sheet open
-    }
+  "getTokenActionContext",
+  (
+    _token: TokenObjectType,
+    buttons: Array<{ name: string; icon: string; callback: () => void }>
+  ) => {
+    // This hook may not exist, but try it
+    log("getTokenActionContext called");
+    buttons.push({
+      name: "Open Bank",
+      icon: '<i class="fas fa-university"></i>',
+      callback: (): void => {
+        log("Bank context menu clicked");
+      },
+    });
   }
 );
 
@@ -329,8 +379,27 @@ Hooks.on("renderTokenHUD", (_hud: Application, html: JQuery, data: { actorId?: s
   const actor = gameObj?.actors?.get(actorId);
   if (!actor) return;
 
-  // Only show on player's own tokens (not NPC tokens)
-  // GMs see it on all tokens
+  // Check if this is a Bank NPC - add special button
+  const bank = getBankByNPC(actorId);
+  if (bank) {
+    const bankButton = $(`
+      <div class="control-icon fax-bank-hud bank-npc" title="Access ${bank.name}">
+        <i class="fas fa-landmark"></i>
+      </div>
+    `);
+
+    bankButton.on("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      handleBankNPCCheck(actor);
+    });
+
+    html.find(".col.right").append(bankButton);
+    log(`Added bank NPC button to Token HUD for ${bank.name}`);
+    return;
+  }
+
+  // Regular token - only show on player's own tokens (or all for GM)
   const isGM = gameObj?.user?.isGM ?? false;
   const isOwnCharacter = gameObj?.user?.character?.id === actorId;
 
@@ -415,9 +484,9 @@ Hooks.on(
       <div class="fax-bank-help">
         <h3>🏦 FAX-BANK Commands</h3>
         <p><strong>/bank</strong> - Show this help</p>
-        <p><strong>Token HUD</strong> - Right-click your token, click bank icon</p>
-        <p><strong>Bank NPCs</strong> - Double-click a Bank NPC token to access bank</p>
-        <p><strong>Console</strong> - FAXBANK.openBank(actorId)</p>
+        <p><strong>/bank open</strong> - Open your bank directly</p>
+        <p><strong>Token HUD</strong> - Right-click token, click bank icon</p>
+        <p><strong>Bank NPCs</strong> - Right-click Bank NPC token, click landmark icon</p>
         ${gameObj?.user?.isGM ? "<p><strong>Admin</strong> - Token Controls → Bank icon</p>" : ""}
       </div>
     `;
