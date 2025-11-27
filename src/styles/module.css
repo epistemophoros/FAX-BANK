@@ -21,7 +21,10 @@
 
 /* Base */
 .fax-bank {
-  font-family: "Signika", -apple-system, sans-serif;
+  font-family:
+    "Signika",
+    -apple-system,
+    sans-serif;
 }
 
 .fax-bank .window-content {
