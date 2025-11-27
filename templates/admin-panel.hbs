@@ -12,6 +12,9 @@
   </header>
 
   <nav class="admin-tabs">
+    <button type="button" class="tab-btn {{#if showAccess}}active{{/if}}" data-tab="access">
+      🎯 Quick Access
+    </button>
     <button type="button" class="tab-btn {{#if showEconomies}}active{{/if}}" data-tab="economies">
       🏛️ Economies
     </button>
@@ -28,6 +31,54 @@
 
   <div class="admin-content">
     
+    {{!-- QUICK ACCESS TAB --}}
+    {{#if showAccess}}
+    <section class="tab-panel">
+      <div class="panel-section">
+        <h3>🎯 Open Bank for Character</h3>
+        <p class="hint">Click on a character to open their bank dialog directly.</p>
+        
+        {{#if playerCharacters.length}}
+          <div class="character-grid">
+            {{#each playerCharacters}}
+            <button type="button" class="character-card open-bank-btn" data-actor-id="{{this.id}}">
+              <i class="fas fa-user"></i>
+              <span class="character-name">{{this.name}}</span>
+            </button>
+            {{/each}}
+          </div>
+        {{else}}
+          <p class="empty-message">No player characters found.</p>
+        {{/if}}
+      </div>
+
+      <div class="panel-section">
+        <h3>🏦 Bank NPCs</h3>
+        <p class="hint">Your configured bank NPCs. Left-click these tokens on the canvas to access banks.</p>
+        
+        {{#if banks.length}}
+          <div class="bank-npc-grid">
+            {{#each banks}}
+            <div class="bank-npc-card">
+              <div class="bank-npc-info">
+                <strong>{{this.name}}</strong>
+                <span>{{this.economyName}}</span>
+              </div>
+              {{#if this.npcName}}
+                <span class="npc-badge">{{this.npcName}}</span>
+              {{else}}
+                <span class="npc-badge warning">No NPC</span>
+              {{/if}}
+            </div>
+            {{/each}}
+          </div>
+        {{else}}
+          <p class="empty-message">No banks configured. Go to the Banks tab to create one.</p>
+        {{/if}}
+      </div>
+    </section>
+    {{/if}}
+
     {{!-- ECONOMIES TAB --}}
     {{#if showEconomies}}
     <section class="tab-panel">
@@ -141,7 +192,7 @@
     <section class="tab-panel">
       <div class="panel-section">
         <h3>➕ Create New Bank</h3>
-        <p class="hint">Banks belong to economies. Assign an NPC to let players interact with it.</p>
+        <p class="hint">Banks belong to economies. Assign an NPC so players can left-click the token to access.</p>
         
         <div class="form-grid">
           <div class="form-field">
@@ -158,9 +209,9 @@
             </select>
           </div>
           <div class="form-field">
-            <label>Bank NPC (optional)</label>
+            <label>Bank NPC</label>
             <select id="bank-npc">
-              <option value="">-- No NPC --</option>
+              <option value="">-- Select NPC --</option>
               {{#each availableActors}}
               <option value="{{this.id}}">{{this.name}} ({{this.type}})</option>
               {{/each}}
@@ -208,9 +259,9 @@
                 {{/if}}
               </div>
               {{#if this.npcName}}
-              <p class="npc-info">✅ Current NPC: <strong>{{this.npcName}}</strong></p>
+              <p class="npc-info">✅ NPC: <strong>{{this.npcName}}</strong> — Players left-click this token to open bank</p>
               {{else}}
-              <p class="npc-info warning">⚠️ No NPC assigned. Players won't be able to access this bank via NPC interaction.</p>
+              <p class="npc-info warning">⚠️ No NPC assigned. Assign one so players can access this bank.</p>
               {{/if}}
             </div>
           </div>
@@ -227,7 +278,7 @@
     <section class="tab-panel">
       <div class="panel-section">
         <h3>📋 All Bank Accounts ({{accounts.length}})</h3>
-        <p class="hint">View all player accounts across all banks. Accounts are created when players deposit funds.</p>
+        <p class="hint">View all player accounts across all banks.</p>
         
         {{#if accounts.length}}
           <table class="data-table">
@@ -253,7 +304,7 @@
             </tbody>
           </table>
         {{else}}
-          <p class="empty-message">No accounts yet. Players will create accounts when they deposit funds at a bank.</p>
+          <p class="empty-message">No accounts yet. Accounts are created when players deposit funds.</p>
         {{/if}}
       </div>
     </section>
@@ -267,39 +318,33 @@
         
         <div class="help-item">
           <h4>🏛️ Step 1: Create an Economy</h4>
-          <p>Economies represent monetary systems for kingdoms, factions, or regions. Each economy has its own set of currencies with exchange rates.</p>
+          <p>Go to Economies tab. Create an economy with a base currency.</p>
         </div>
         
         <div class="help-item">
-          <h4>💰 Step 2: Add Currencies</h4>
-          <p>The base currency has a rate of 1. Additional currencies have rates relative to the base (e.g., Silver = 0.1 means 10 Silver = 1 Gold).</p>
+          <h4>🏦 Step 2: Create a Bank</h4>
+          <p>Go to Banks tab. Create a bank and assign an NPC actor to it.</p>
         </div>
         
         <div class="help-item">
-          <h4>🏦 Step 3: Create Banks</h4>
-          <p>Banks belong to economies and hold player accounts. Create at least one bank for each economy.</p>
+          <h4>🎯 Step 3: Players Access Bank</h4>
+          <p><strong>Left-click</strong> the Bank NPC token on the canvas to open the bank.</p>
         </div>
         
         <div class="help-item">
-          <h4>👤 Step 4: Assign Bank NPCs</h4>
-          <p>Assign an Actor (typically an NPC) to represent the bank. When players open that NPC's character sheet, they'll see a button to access the bank.</p>
-        </div>
-        
-        <div class="help-item">
-          <h4>💵 Step 5: Players Use Banks</h4>
-          <p>Players can:</p>
+          <h4>💵 What Players Can Do</h4>
           <ul>
-            <li>Open Bank NPC sheets to access banking</li>
-            <li>Use the Token HUD bank button (right-click token)</li>
-            <li>Deposit/withdraw currency (syncs with character sheet for dnd5e/pf2e)</li>
-            <li>Transfer funds to other characters</li>
+            <li>Deposit currency (from character sheet)</li>
+            <li>Withdraw currency (to character sheet)</li>
+            <li>Transfer to other characters</li>
           </ul>
         </div>
         
         <div class="help-item">
           <h4>🔧 Console Commands</h4>
           <p><code>FAXBANK.openAdmin()</code> - Open this panel</p>
-          <p><code>FAXBANK.openBank(actorId)</code> - Open bank dialog for an actor</p>
+          <p><code>FAXBANK.openBank('actorId')</code> - Open bank for actor</p>
+          <p><code>FAXBANK.listBanks()</code> - List all banks</p>
         </div>
       </div>
     </section>
