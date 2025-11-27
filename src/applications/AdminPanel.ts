@@ -52,10 +52,12 @@ interface AdminPanelData {
   banks: BanksWithEconomy[];
   accounts: AccountsWithBank[];
   availableActors: Array<{ id: string; name: string; type: string }>;
+  playerCharacters: Array<{ id: string; name: string; type: string }>;
   activeTab: string;
   showEconomies: boolean;
   showBanks: boolean;
   showAccounts: boolean;
+  showAccess: boolean;
   showHelp: boolean;
 }
 
@@ -75,7 +77,7 @@ interface AccountsWithBank extends BankAccount {
  * Admin Panel for GMs to manage the full economy system
  */
 export class AdminPanel extends Application {
-  private activeTab = "economies";
+  private activeTab = "access";
 
   static override get defaultOptions(): ApplicationOptions {
     return foundry.utils.mergeObject(super.defaultOptions, {
@@ -145,6 +147,9 @@ export class AdminPanel extends Application {
       }
     }
 
+    // Get player characters for quick access
+    const playerCharacters = availableActors.filter((a) => a.type === "character");
+
     return {
       gameSystem: getGameSystem(),
       isSupported: isSystemSupported(),
@@ -152,10 +157,12 @@ export class AdminPanel extends Application {
       banks: banksWithEconomy,
       accounts: accountsWithBank,
       availableActors,
+      playerCharacters,
       activeTab: this.activeTab,
       showEconomies: this.activeTab === "economies",
       showBanks: this.activeTab === "banks",
       showAccounts: this.activeTab === "accounts",
+      showAccess: this.activeTab === "access",
       showHelp: this.activeTab === "help",
     };
   }
@@ -347,9 +354,28 @@ export class AdminPanel extends Application {
 
       const actor = gameObj?.actors?.get(actorId);
       if (actor) {
-        // Open the actor sheet
         const actorDoc = actor as unknown as { sheet?: { render: (force: boolean) => void } };
         actorDoc.sheet?.render(true);
+      }
+    });
+
+    // ========== QUICK ACCESS ==========
+
+    // Open bank for a character
+    html.find(".open-bank-btn").on("click", (event) => {
+      const actorId = event.currentTarget.dataset.actorId;
+      if (!actorId) return;
+
+      const actor = gameObj?.actors?.get(actorId);
+      if (actor?.id && actor?.name) {
+        // Import and open BankDialog
+        import("./BankDialog")
+          .then(({ BankDialog }) => {
+            new BankDialog(actor.id ?? "", actor.name ?? "Unknown").render(true);
+          })
+          .catch(() => {
+            notifications?.error("Failed to open bank");
+          });
       }
     });
 

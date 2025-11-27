@@ -27,9 +27,6 @@ type GameType = {
     get: (id: string) => ActorType | undefined;
     contents?: ActorType[];
   };
-  i18n?: {
-    localize: (key: string) => string;
-  };
 };
 
 type ActorType = {
@@ -37,20 +34,13 @@ type ActorType = {
   name?: string;
   img?: string;
   type?: string;
-  sheet?: { render: (force: boolean) => void; close: () => Promise<void> };
-  getFlag?: (module: string, key: string) => unknown;
-};
-
-type TokenDocType = {
-  actor?: ActorType;
-  actorId?: string;
+  sheet?: { render: (force: boolean) => void };
 };
 
 type TokenObjectType = {
   id?: string;
-  document?: TokenDocType;
   actor?: ActorType;
-  name?: string;
+  document?: { actorId?: string };
 };
 
 type NotificationsType = {
@@ -126,7 +116,7 @@ const showGMBankDialog = (bankName: string, npcActor: ActorType): void => {
     }
   }
 
-  // Also add any other characters from actors list that aren't assigned
+  // Also add any other characters
   if (gameObj?.actors?.contents) {
     for (const actor of gameObj.actors.contents) {
       if (
@@ -144,7 +134,6 @@ const showGMBankDialog = (bankName: string, npcActor: ActorType): void => {
     }
   }
 
-  // Build dropdown options
   const options = playerCharacters
     .map((p) => `<option value="${p.id}">${p.name} - ${p.playerName}</option>`)
     .join("");
@@ -156,8 +145,6 @@ const showGMBankDialog = (bankName: string, npcActor: ActorType): void => {
         <option value="">-- Select Character --</option>
         ${options}
       </select>
-      <hr style="margin: 15px 0; border-color: #404060;">
-      <p style="font-size: 0.9em; color: #9ca3af;">Or manage the NPC directly:</p>
     </div>
   `;
 
@@ -188,55 +175,31 @@ const showGMBankDialog = (bankName: string, npcActor: ActorType): void => {
           npcActor.sheet?.render(true);
         },
       },
-      cancel: {
-        icon: '<i class="fas fa-times"></i>',
-        label: "Cancel",
-      },
     },
     default: "bank",
   }).render(true);
 };
 
 /**
- * Handle Bank NPC interaction for players
+ * Handle Bank NPC click - this is called when left-clicking a Bank NPC token
  */
-const handlePlayerBankInteraction = (bankName: string): void => {
+const handleBankNPCClick = (actor: ActorType, bankName: string): void => {
   const gameObj = game as GameType | undefined;
   const notifications = ui.notifications as NotificationsType | undefined;
 
-  // Get the player's assigned character
-  const playerCharacter = gameObj?.user?.character;
-
-  if (!playerCharacter?.id) {
-    notifications?.warn(
-      "You don't have a character assigned. Ask your GM to assign you a character."
-    );
-    return;
-  }
-
-  // Open bank for the player's character
-  notifications?.info(`Opening ${bankName}...`);
-  openBankForActor(playerCharacter);
-};
-
-/**
- * Check if an actor is a Bank NPC and handle interaction
- */
-const handleBankNPCCheck = (actor: ActorType): boolean => {
-  if (!actor?.id) return false;
-
-  const bank = getBankByNPC(actor.id);
-  if (!bank) return false;
-
-  const gameObj = game as GameType | undefined;
-
   if (gameObj?.user?.isGM) {
-    showGMBankDialog(bank.name, actor);
+    // GM gets selection dialog
+    showGMBankDialog(bankName, actor);
   } else {
-    handlePlayerBankInteraction(bank.name);
+    // Player gets their bank opened directly
+    const playerCharacter = gameObj?.user?.character;
+    if (!playerCharacter?.id) {
+      notifications?.warn("You don't have a character assigned. Ask your GM.");
+      return;
+    }
+    notifications?.info(`Opening ${bankName}...`);
+    openBankForActor(playerCharacter);
   }
-
-  return true;
 };
 
 /**
@@ -244,14 +207,9 @@ const handleBankNPCCheck = (actor: ActorType): boolean => {
  */
 Hooks.once("init", () => {
   log(`Initializing ${MODULE_NAME}`);
-
-  // Register settings
   registerSettings();
-
-  // Register economy data storage
   registerEconomyStorage();
 
-  // Load templates
   const templates = Object.values(TEMPLATES);
   loadTemplates(templates).catch((err: unknown) => {
     log(`Failed to load templates: ${String(err)}`);
@@ -266,7 +224,6 @@ Hooks.once("init", () => {
 Hooks.once("ready", () => {
   log(`${MODULE_NAME} ready`);
 
-  // Check system support
   const system = getGameSystem();
   const supported = isSystemSupported();
   log(`Game system: ${system}, Supported: ${supported}`);
@@ -274,14 +231,13 @@ Hooks.once("ready", () => {
   if (!supported) {
     const notifications = ui.notifications as NotificationsType | undefined;
     notifications?.warn(
-      `FAX-BANK: System "${system}" has limited support. Currency tracking may not work correctly.`
+      `FAX-BANK: System "${system}" has limited support. Currency may not sync with character sheets.`
     );
   }
 
-  // Initialize socket for multiplayer
   initializeSocket();
 
-  // Expose API for console/macros
+  // Expose API
   const gameObj = game as GameType | undefined;
   const moduleData = gameObj?.modules?.get(MODULE_ID);
   if (moduleData) {
@@ -289,14 +245,11 @@ Hooks.once("ready", () => {
       openAdmin: openAdminPanel,
       openBank: (actorId: string): void => {
         const actor = gameObj?.actors?.get(actorId);
-        if (actor) {
-          openBankForActor(actor);
-        }
+        if (actor) openBankForActor(actor);
       },
     };
   }
 
-  // Global console helper
   // @ts-expect-error - Adding to window for console access
   window.FAXBANK = {
     openAdmin: openAdminPanel,
@@ -316,57 +269,45 @@ Hooks.once("ready", () => {
     },
   };
 
-  log("API exposed: FAXBANK.openAdmin(), FAXBANK.openBank(actorId), FAXBANK.listBanks()");
+  log("API: FAXBANK.openAdmin(), FAXBANK.openBank(actorId), FAXBANK.listBanks()");
 });
 
 /**
- * When actor sheet renders, check if it's a Bank NPC and close it / show bank instead
+ * Intercept token left-click - if it's a Bank NPC, open bank instead of sheet
  */
-Hooks.on("renderActorSheet", (sheet: Application, _html: JQuery, data: { actor?: ActorType }) => {
-  const actor = data.actor;
+Hooks.on("clickToken", (token: TokenObjectType, _event: unknown) => {
+  const actor = token.actor;
   if (!actor?.id) return;
 
   // Check if this is a Bank NPC
   const bank = getBankByNPC(actor.id);
-  if (!bank) return;
+  if (!bank) return; // Not a bank NPC, let normal behavior happen
 
-  // Close the sheet immediately
-  const sheetWithClose = sheet as Application & { close: () => Promise<void> };
-  void sheetWithClose.close();
-
-  // Show the bank interaction
-  const gameObj = game as GameType | undefined;
-
-  if (gameObj?.user?.isGM) {
-    showGMBankDialog(bank.name, actor);
-  } else {
-    handlePlayerBankInteraction(bank.name);
-  }
+  // This is a Bank NPC - handle bank interaction
+  log(`Bank NPC clicked: ${bank.name}`);
+  handleBankNPCClick(actor, bank.name);
 });
 
 /**
- * Add right-click context menu option to tokens
+ * Intercept double-click to prevent actor sheet from opening for Bank NPCs
  */
-Hooks.on(
-  "getTokenActionContext",
-  (
-    _token: TokenObjectType,
-    buttons: Array<{ name: string; icon: string; callback: () => void }>
-  ) => {
-    // This hook may not exist, but try it
-    log("getTokenActionContext called");
-    buttons.push({
-      name: "Open Bank",
-      icon: '<i class="fas fa-university"></i>',
-      callback: (): void => {
-        log("Bank context menu clicked");
-      },
-    });
-  }
-);
+Hooks.on("clickToken2", (token: TokenObjectType, _event: unknown) => {
+  const actor = token.actor;
+  if (!actor?.id) return true; // Allow normal behavior
+
+  // Check if this is a Bank NPC
+  const bank = getBankByNPC(actor.id);
+  if (!bank) return true; // Not a bank NPC, allow sheet to open
+
+  // This is a Bank NPC - prevent default and handle bank interaction
+  log(`Bank NPC double-clicked: ${bank.name}`);
+  handleBankNPCClick(actor, bank.name);
+
+  return false; // Prevent the actor sheet from opening
+});
 
 /**
- * Add Token HUD button for players to access their own bank
+ * Add Token HUD button (optional, for convenience)
  */
 Hooks.on("renderTokenHUD", (_hud: Application, html: JQuery, data: { actorId?: string }) => {
   const showHudButton = getSetting<boolean>("enableFeature");
@@ -379,53 +320,38 @@ Hooks.on("renderTokenHUD", (_hud: Application, html: JQuery, data: { actorId?: s
   const actor = gameObj?.actors?.get(actorId);
   if (!actor) return;
 
-  // Check if this is a Bank NPC - add special button
-  const bank = getBankByNPC(actorId);
-  if (bank) {
-    const bankButton = $(`
-      <div class="control-icon fax-bank-hud bank-npc" title="Access ${bank.name}">
-        <i class="fas fa-landmark"></i>
-      </div>
-    `);
-
-    bankButton.on("click", (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      handleBankNPCCheck(actor);
-    });
-
-    html.find(".col.right").append(bankButton);
-    log(`Added bank NPC button to Token HUD for ${bank.name}`);
-    return;
-  }
-
-  // Regular token - only show on player's own tokens (or all for GM)
+  // Only show on player's own token or for GM
   const isGM = gameObj?.user?.isGM ?? false;
   const isOwnCharacter = gameObj?.user?.character?.id === actorId;
+  const isBank = getBankByNPC(actorId);
 
-  if (!isGM && !isOwnCharacter) return;
+  if (!isGM && !isOwnCharacter && !isBank) return;
 
-  // Create bank button
+  const title = isBank ? `Access ${isBank.name}` : "Open Bank";
+  const icon = isBank ? "fa-landmark" : "fa-university";
+
   const button = $(`
-    <div class="control-icon fax-bank-hud" title="Open Bank">
-      <i class="fas fa-university"></i>
+    <div class="control-icon fax-bank-hud" title="${title}">
+      <i class="fas ${icon}"></i>
     </div>
   `);
 
   button.on("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
-    openBankForActor(actor);
+
+    if (isBank) {
+      handleBankNPCClick(actor, isBank.name);
+    } else {
+      openBankForActor(actor);
+    }
   });
 
-  // Add to HUD (right column)
   html.find(".col.right").append(button);
-
-  log("Added bank button to Token HUD");
 });
 
 /**
- * Add scene controls
+ * Add scene controls (Admin button for GM)
  */
 Hooks.on(
   "getSceneControlButtons",
@@ -442,33 +368,25 @@ Hooks.on(
     }>
   ) => {
     const gameObj = game as GameType | undefined;
-    const isGM = gameObj?.user?.isGM ?? false;
+    if (!gameObj?.user?.isGM) return;
 
-    // Find token controls
     const tokenControls = controls.find((c) => c.name === "token");
     if (!tokenControls) return;
 
-    if (!tokenControls.tools) {
-      tokenControls.tools = [];
-    }
+    if (!tokenControls.tools) tokenControls.tools = [];
 
-    // Add Admin Panel button (GM only)
-    if (isGM) {
-      tokenControls.tools.push({
-        name: "fax-bank-admin",
-        title: "FAX-BANK Admin",
-        icon: "fas fa-university",
-        button: true,
-        onClick: () => {
-          openAdminPanel();
-        },
-      });
-    }
+    tokenControls.tools.push({
+      name: "fax-bank-admin",
+      title: "FAX-BANK Admin",
+      icon: "fas fa-university",
+      button: true,
+      onClick: () => openAdminPanel(),
+    });
   }
 );
 
 /**
- * Chat command handler
+ * Chat commands
  */
 Hooks.on(
   "chatMessage",
@@ -477,26 +395,17 @@ Hooks.on(
 
     if (trimmed === "/bank" || trimmed === "/bank help") {
       const gameObj = game as GameType | undefined;
-      const notifications = ui.notifications as NotificationsType | undefined;
 
-      // Show help
       const helpText = `
       <div class="fax-bank-help">
-        <h3>🏦 FAX-BANK Commands</h3>
-        <p><strong>/bank</strong> - Show this help</p>
-        <p><strong>/bank open</strong> - Open your bank directly</p>
-        <p><strong>Token HUD</strong> - Right-click token, click bank icon</p>
-        <p><strong>Bank NPCs</strong> - Right-click Bank NPC token, click landmark icon</p>
-        ${gameObj?.user?.isGM ? "<p><strong>Admin</strong> - Token Controls → Bank icon</p>" : ""}
+        <h3>🏦 FAX-BANK</h3>
+        <p><strong>/bank open</strong> - Open your bank</p>
+        <p><strong>Left-click</strong> Bank NPC token to access bank</p>
+        ${gameObj?.user?.isGM ? "<p><strong>Admin:</strong> Token Controls → Bank icon</p>" : ""}
       </div>
     `;
 
-      notifications?.info("FAX-BANK: Check chat for commands");
-
-      // Post to chat
-      type ChatMessageImpl = {
-        create: (data: object) => Promise<unknown>;
-      };
+      type ChatMessageImpl = { create: (data: object) => Promise<unknown> };
       const ChatMsg = ChatMessage as unknown as { implementation?: ChatMessageImpl };
       if (ChatMsg.implementation?.create) {
         void ChatMsg.implementation.create({
@@ -504,11 +413,9 @@ Hooks.on(
           whisper: gameObj?.user?.isGM ? [] : undefined,
         });
       }
-
-      return false; // Prevent default chat
+      return false;
     }
 
-    // Quick bank open for players
     if (trimmed === "/bank open") {
       const gameObj = game as GameType | undefined;
       const playerCharacter = gameObj?.user?.character;
@@ -519,7 +426,6 @@ Hooks.on(
         const notifications = ui.notifications as NotificationsType | undefined;
         notifications?.warn("You don't have a character assigned");
       }
-
       return false;
     }
   }
