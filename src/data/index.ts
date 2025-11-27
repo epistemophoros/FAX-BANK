@@ -1,7 +1,5 @@
 /**
- * Data module exports
+ * Data exports
  */
 
-export * from "./DataStore";
 export * from "./EconomyManager";
-export * from "./BankManager";

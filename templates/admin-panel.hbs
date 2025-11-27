@@ -5,72 +5,221 @@
     <p class="system-info">
       Game System: <strong>{{gameSystem}}</strong>
       {{#if isSupported}}
-        <span class="supported">✅ Supported</span>
+        <span class="supported">✅ Full Support</span>
       {{else}}
-        <span class="unsupported">⚠️ Limited Support</span>
+        <span class="unsupported">⚠️ Custom Economy Mode</span>
       {{/if}}
     </p>
   </header>
 
-  {{! Create Bank NPC Section }}
-  <section class="admin-section create-bank">
-    <h3>📌 Designate Bank NPC</h3>
-    <p class="hint">Select an actor (NPC) to become a bank. Players can interact with this NPC to access the bank.</p>
-    
-    <div class="form-row">
-      <label for="bank-actor-select">Actor:</label>
-      <select id="bank-actor-select" class="bank-actor-select">
-        <option value="">-- Select Actor --</option>
-        {{#each availableActors}}
-          <option value="{{this.id}}">{{this.name}} ({{this.type}})</option>
-        {{/each}}
-      </select>
-    </div>
-    
-    <div class="form-row">
-      <label for="bank-name-input">Bank Name:</label>
-      <input type="text" id="bank-name-input" placeholder="e.g., Royal Treasury, Merchant Guild Bank" />
-    </div>
-    
-    <button type="button" class="create-bank-btn">
-      <i class="fas fa-plus"></i> Create Bank NPC
+  {{! Tab Navigation }}
+  <nav class="admin-tabs">
+    <button type="button" class="tab-btn {{#if (eq activeTab 'economies')}}active{{/if}}" data-tab="economies">
+      🏛️ Economies
     </button>
-  </section>
+    <button type="button" class="tab-btn {{#if (eq activeTab 'banks')}}active{{/if}}" data-tab="banks">
+      🏦 Banks
+    </button>
+    <button type="button" class="tab-btn {{#if (eq activeTab 'help')}}active{{/if}}" data-tab="help">
+      ℹ️ Help
+    </button>
+  </nav>
 
-  {{! Current Bank NPCs }}
-  <section class="admin-section bank-npcs">
-    <h3>🏛️ Active Bank NPCs</h3>
+  {{! Tab Content }}
+  <div class="admin-content">
     
-    {{#if bankNPCs.length}}
-      <ul class="bank-npc-list">
-        {{#each bankNPCs}}
-          <li class="bank-npc-item">
-            <img src="{{this.actorImg}}" alt="{{this.actorName}}" class="actor-img" />
-            <div class="bank-info">
-              <span class="actor-name">{{this.actorName}}</span>
-              <span class="bank-name">{{this.bankName}}</span>
-            </div>
-            <button type="button" class="remove-bank-btn" data-actor-id="{{this.actorId}}" title="Remove bank status">
-              <i class="fas fa-trash"></i>
-            </button>
-          </li>
-        {{/each}}
-      </ul>
-    {{else}}
-      <p class="empty-state">No bank NPCs configured. Create one above!</p>
-    {{/if}}
-  </section>
+    {{! Economies Tab }}
+    {{#if (eq activeTab 'economies')}}
+    <section class="tab-panel economies-panel">
+      <h3>Create Economy</h3>
+      <p class="hint">Economies represent kingdoms, factions, or regions with their own currency systems.</p>
+      
+      <div class="create-form">
+        <div class="form-row">
+          <label>Economy Name:</label>
+          <input type="text" id="economy-name" placeholder="e.g., Kingdom of Valdris" />
+        </div>
+        <div class="form-row">
+          <label>Description:</label>
+          <input type="text" id="economy-description" placeholder="e.g., The northern kingdom" />
+        </div>
+        <div class="form-group">
+          <h4>Base Currency</h4>
+          <div class="form-row inline">
+            <input type="text" id="base-currency-name" placeholder="Name (Gold)" />
+            <input type="text" id="base-currency-abbrev" placeholder="Abbrev (gp)" />
+            <input type="text" id="base-currency-symbol" placeholder="Symbol (🪙)" />
+          </div>
+        </div>
+        <button type="button" id="create-economy-btn" class="primary-btn">
+          <i class="fas fa-plus"></i> Create Economy
+        </button>
+      </div>
 
-  {{! Help Section }}
-  <section class="admin-section help">
-    <h3>ℹ️ How It Works</h3>
-    <ul class="help-list">
-      <li><strong>Bank NPCs:</strong> Designate any actor as a bank. Players double-click or interact with the NPC to open the bank.</li>
-      <li><strong>Currency:</strong> Uses your game system's native currency ({{gameSystem}}). All transactions affect the actual character sheet.</li>
-      <li><strong>Transfers:</strong> Players can transfer money to other characters. GM processes all transfers.</li>
-      <li><strong>Security:</strong> Only GMs can add currency. Players can only spend what they have.</li>
-    </ul>
-  </section>
+      <h3>Existing Economies</h3>
+      {{#if economies.length}}
+        <ul class="economy-list">
+          {{#each economies}}
+            <li class="economy-item" data-economy-id="{{this.id}}">
+              <div class="economy-header">
+                <strong>{{this.name}}</strong>
+                <span class="economy-desc">{{this.description}}</span>
+                <button type="button" class="delete-economy-btn danger-btn" data-economy-id="{{this.id}}">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+              
+              <div class="currencies">
+                <h5>Currencies:</h5>
+                <ul class="currency-list">
+                  {{#each this.currencies}}
+                    <li class="currency-item">
+                      <span class="currency-symbol">{{this.symbol}}</span>
+                      <span class="currency-name">{{this.name}} ({{this.abbrev}})</span>
+                      <span class="currency-rate">1 base = {{this.baseValue}}</span>
+                      {{#unless this.isBase}}
+                        <button type="button" class="remove-currency-btn mini-btn" 
+                                data-economy-id="{{../id}}" data-currency-id="{{this.id}}">
+                          <i class="fas fa-times"></i>
+                        </button>
+                      {{/unless}}
+                      {{#if this.isBase}}<span class="base-badge">BASE</span>{{/if}}
+                    </li>
+                  {{/each}}
+                </ul>
+                
+                <div class="add-currency-form">
+                  <input type="text" class="new-currency-name" placeholder="Name" />
+                  <input type="text" class="new-currency-abbrev" placeholder="Abbrev" />
+                  <input type="text" class="new-currency-symbol" placeholder="Symbol" />
+                  <input type="number" class="new-currency-value" placeholder="Base Value" step="0.01" min="0.01" />
+                  <button type="button" class="add-currency-btn mini-btn" data-economy-id="{{this.id}}">
+                    <i class="fas fa-plus"></i> Add
+                  </button>
+                </div>
+              </div>
+            </li>
+          {{/each}}
+        </ul>
+      {{else}}
+        <p class="empty-state">No economies created yet. Create one above!</p>
+      {{/if}}
+    </section>
+    {{/if}}
+
+    {{! Banks Tab }}
+    {{#if (eq activeTab 'banks')}}
+    <section class="tab-panel banks-panel">
+      <h3>Create Bank</h3>
+      <p class="hint">Banks belong to economies. Assign an NPC actor to let players interact with the bank.</p>
+      
+      <div class="create-form">
+        <div class="form-row">
+          <label>Bank Name:</label>
+          <input type="text" id="bank-name" placeholder="e.g., Royal Treasury" />
+        </div>
+        <div class="form-row">
+          <label>Economy:</label>
+          <select id="bank-economy">
+            <option value="">-- Select Economy --</option>
+            {{#each economies}}
+              <option value="{{this.id}}">{{this.name}}</option>
+            {{/each}}
+          </select>
+        </div>
+        <div class="form-row">
+          <label>Bank NPC (optional):</label>
+          <select id="bank-npc">
+            <option value="">-- No NPC --</option>
+            {{#each availableActors}}
+              <option value="{{this.id}}">{{this.name}} ({{this.type}})</option>
+            {{/each}}
+          </select>
+        </div>
+        <button type="button" id="create-bank-btn" class="primary-btn">
+          <i class="fas fa-plus"></i> Create Bank
+        </button>
+      </div>
+
+      <h3>Existing Banks</h3>
+      {{#if banks.length}}
+        <ul class="bank-list">
+          {{#each banks}}
+            <li class="bank-item" data-bank-id="{{this.id}}">
+              <div class="bank-header">
+                <strong>{{this.name}}</strong>
+                <span class="bank-economy">Economy: {{this.economyId}}</span>
+                <button type="button" class="delete-bank-btn danger-btn" data-bank-id="{{this.id}}">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+              
+              <div class="bank-npc-row">
+                <label>Assigned NPC:</label>
+                <select class="bank-npc-select">
+                  <option value="">-- No NPC --</option>
+                  {{#each ../availableActors}}
+                    <option value="{{this.id}}" {{#if (eq this.id ../npcActorId)}}selected{{/if}}>
+                      {{this.name}}
+                    </option>
+                  {{/each}}
+                </select>
+                <button type="button" class="assign-npc-btn mini-btn" data-bank-id="{{this.id}}">
+                  <i class="fas fa-save"></i> Save
+                </button>
+              </div>
+            </li>
+          {{/each}}
+        </ul>
+      {{else}}
+        <p class="empty-state">No banks created yet. Create an economy first, then add banks!</p>
+      {{/if}}
+    </section>
+    {{/if}}
+
+    {{! Help Tab }}
+    {{#if (eq activeTab 'help')}}
+    <section class="tab-panel help-panel">
+      <h3>How FAX-BANK Works</h3>
+      
+      <div class="help-section">
+        <h4>🏛️ Economies</h4>
+        <p>Economies represent different monetary systems (kingdoms, factions, etc.). Each economy has its own currencies with exchange rates.</p>
+      </div>
+      
+      <div class="help-section">
+        <h4>💰 Currencies</h4>
+        <p>Each economy has a base currency (value = 1). Additional currencies have exchange rates relative to the base.</p>
+        <p>Example: If Gold is base (1) and Silver is 0.1, then 10 Silver = 1 Gold.</p>
+      </div>
+      
+      <div class="help-section">
+        <h4>🏦 Banks</h4>
+        <p>Banks belong to economies and hold player accounts. Players can deposit, withdraw, and transfer funds.</p>
+      </div>
+      
+      <div class="help-section">
+        <h4>👤 Bank NPCs</h4>
+        <p>Assign an actor (NPC) to a bank. When players open that NPC's sheet, they'll see a button to access the bank.</p>
+      </div>
+      
+      <div class="help-section">
+        <h4>🔗 Character Sheet Integration</h4>
+        {{#if isSupported}}
+          <p>✅ Your system ({{gameSystem}}) is supported! Deposits/withdrawals will update the character sheet currency.</p>
+        {{else}}
+          <p>⚠️ Your system uses custom economy tracking. Currency won't sync with character sheets automatically.</p>
+        {{/if}}
+      </div>
+      
+      <div class="help-section">
+        <h4>📜 Console Commands</h4>
+        <code>FAXBANK.openAdmin()</code> - Open this panel<br>
+        <code>FAXBANK.openBank(actorId)</code> - Open bank for an actor
+      </div>
+    </section>
+    {{/if}}
+  </div>
 
   {{! Footer }}
   <footer class="admin-footer">

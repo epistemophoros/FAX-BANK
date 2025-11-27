@@ -16,6 +16,7 @@ import {
   isSystemSupported,
   getGameSystem,
 } from "./systems/SystemCurrency";
+import { registerEconomyStorage, getBankByNPC } from "./data/EconomyManager";
 
 // Types
 type GameType = {
@@ -101,6 +102,9 @@ Hooks.once("init", () => {
 
   // Register settings
   registerSettings();
+
+  // Register economy data storage
+  registerEconomyStorage();
 
   // Load templates
   const templates = Object.values(TEMPLATES);
@@ -233,20 +237,21 @@ Hooks.on("canvasReady", () => {
  */
 Hooks.on("renderActorSheet", (_sheet: Application, html: JQuery, data: { actor?: ActorType }) => {
   const actor = data.actor;
-  if (!actor) return;
+  if (!actor?.id) return;
 
-  // Check if this actor is a Bank NPC
-  if (!isActorBank(actor)) return;
+  // Check if this actor is a Bank NPC (either via flags or EconomyManager)
+  const bankFromFlags = isActorBank(actor) ? getActorBankData(actor) : null;
+  const bankFromManager = getBankByNPC(actor.id);
 
-  const bankData = getActorBankData(actor);
-  if (!bankData) return;
+  const bankName = bankFromManager?.name ?? bankFromFlags?.bankName ?? null;
+  if (!bankName) return;
 
   // Add a prominent "Open Bank" button to the sheet
   const bankButton = $(`
     <div class="fax-bank-npc-banner">
       <button type="button" class="fax-bank-open-btn">
         <i class="fas fa-university"></i>
-        Open ${bankData.bankName ?? "Bank"}
+        Open ${bankName}
       </button>
     </div>
   `);
