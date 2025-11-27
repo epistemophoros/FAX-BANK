@@ -19,7 +19,6 @@ import {
   createAccount,
   updateAccountBalance,
   getEconomy,
-  type Bank,
   type BankAccount,
 } from "../data/EconomyManager";
 
@@ -194,7 +193,7 @@ export class BankDialog extends Application {
     // Deposit money (wallet → bank)
     html.find(".deposit-btn").on("click", (event) => {
       event.preventDefault();
-      const accountId = (event.currentTarget as HTMLElement).dataset.accountId;
+      const accountId = event.currentTarget.dataset.accountId;
       if (!accountId) return;
 
       const row = html.find(`.account-item[data-account-id="${accountId}"]`);
@@ -268,7 +267,7 @@ export class BankDialog extends Application {
     // Withdraw money (bank → wallet)
     html.find(".withdraw-btn").on("click", (event) => {
       event.preventDefault();
-      const accountId = (event.currentTarget as HTMLElement).dataset.accountId;
+      const accountId = event.currentTarget.dataset.accountId;
       if (!accountId) return;
 
       const row = html.find(`.account-item[data-account-id="${accountId}"]`);
@@ -331,13 +330,7 @@ export class BankDialog extends Application {
             this.render();
           } else {
             // Rollback bank
-            void updateAccountBalance(
-              accountId,
-              economyCurrency.id,
-              amount,
-              "deposit",
-              "Rollback"
-            );
+            void updateAccountBalance(accountId, economyCurrency.id, amount, "deposit", "Rollback");
             notifications?.error("Failed to add to wallet");
           }
         });
