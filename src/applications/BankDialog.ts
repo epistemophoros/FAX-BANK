@@ -76,7 +76,6 @@ interface BankDialogData {
 export class BankDialog extends Application {
   private actorId: string;
   private actorName: string;
-  private selectedAccountId: string | null = null;
 
   constructor(actorId: string, actorName: string) {
     super();
