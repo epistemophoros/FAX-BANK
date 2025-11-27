@@ -168,7 +168,7 @@ Hooks.once("ready", () => {
 /**
  * Add Token HUD button
  */
-Hooks.on("renderTokenHUD", (hud: Application, html: JQuery, data: { actorId?: string }) => {
+Hooks.on("renderTokenHUD", (_hud: Application, html: JQuery, data: { actorId?: string }) => {
   const showHudButton = getSetting<boolean>("enableFeature");
   if (!showHudButton) return;
 
@@ -202,9 +202,8 @@ Hooks.on("renderTokenHUD", (hud: Application, html: JQuery, data: { actorId?: st
  * Handle actor sheet interactions for Bank NPCs
  * When a player double-clicks a Bank NPC token, open the bank
  */
-Hooks.on("clickToken", (token: TokenType, controlled: boolean) => {
-  // Ignore if this was a control action, we want double-click
-  void controlled;
+Hooks.on("clickToken", (_token: TokenType, _controlled: boolean) => {
+  // Placeholder for potential future double-click handling
 });
 
 /**
@@ -232,7 +231,7 @@ Hooks.on("canvasReady", () => {
 /**
  * When Actor Sheet renders, add bank button if it's a Bank NPC
  */
-Hooks.on("renderActorSheet", (sheet: Application, html: JQuery, data: { actor?: ActorType }) => {
+Hooks.on("renderActorSheet", (_sheet: Application, html: JQuery, data: { actor?: ActorType }) => {
   const actor = data.actor;
   if (!actor) return;
 
