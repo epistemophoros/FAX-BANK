@@ -151,7 +151,7 @@ export class AdminPanel extends Application {
     // Remove Bank NPC buttons
     html.find(".remove-bank-btn").on("click", (event) => {
       event.preventDefault();
-      const actorId = (event.currentTarget as HTMLElement).dataset.actorId;
+      const actorId = event.currentTarget.dataset.actorId;
 
       if (!actorId) return;
 
