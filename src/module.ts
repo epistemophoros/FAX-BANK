@@ -10,12 +10,7 @@ import { log } from "./utils/logger";
 import { AdminPanel } from "./applications/AdminPanel";
 import { BankDialog } from "./applications/BankDialog";
 import { initializeSocket } from "./systems/SocketManager";
-import {
-  isActorBank,
-  getActorBankData,
-  isSystemSupported,
-  getGameSystem,
-} from "./systems/SystemCurrency";
+import { isSystemSupported, getGameSystem } from "./systems/SystemCurrency";
 import { registerEconomyStorage, getBankByNPC } from "./data/EconomyManager";
 
 // Types
@@ -38,7 +33,14 @@ type ActorType = {
   getFlag?: (module: string, key: string) => unknown;
 };
 
+type TokenDocType = {
+  actor?: ActorType;
+  actorId?: string;
+};
+
 type TokenType = {
+  id?: string;
+  document?: TokenDocType;
   actor?: ActorType;
 };
 
@@ -91,6 +93,109 @@ const openAdminPanel = (): void => {
   } else {
     adminPanel = new AdminPanel();
     adminPanel.render(true);
+  }
+};
+
+/**
+ * Show GM choice dialog for bank NPC
+ */
+const showGMBankChoice = (bankName: string, npcActor: ActorType, playerActor: ActorType): void => {
+  const content = `
+    <div style="text-align: center; padding: 10px;">
+      <p style="margin-bottom: 15px;">What would you like to do with <strong>${npcActor.name}</strong>?</p>
+      <p style="color: #d4af37; font-size: 0.9em;">Bank: ${bankName}</p>
+    </div>
+  `;
+
+  new Dialog({
+    title: `🏦 ${bankName}`,
+    content,
+    buttons: {
+      bank: {
+        icon: '<i class="fas fa-university"></i>',
+        label: "Open Bank",
+        callback: (): void => {
+          openBankForActor(playerActor);
+        },
+      },
+      sheet: {
+        icon: '<i class="fas fa-user"></i>',
+        label: "Open NPC Sheet",
+        callback: (): void => {
+          npcActor.sheet?.render(true);
+        },
+      },
+      cancel: {
+        icon: '<i class="fas fa-times"></i>',
+        label: "Cancel",
+      },
+    },
+    default: "bank",
+  }).render(true);
+};
+
+/**
+ * Handle interaction with a Bank NPC token
+ */
+const handleBankNPCInteraction = (npcActor: ActorType): void => {
+  if (!npcActor.id) return;
+
+  const bank = getBankByNPC(npcActor.id);
+  if (!bank) return; // Not a bank NPC
+
+  const gameObj = game as GameType | undefined;
+  const notifications = ui.notifications as NotificationsType | undefined;
+
+  // Get the player's controlled token/actor
+  const canvasObj = canvas as
+    | {
+        tokens?: { controlled?: Array<{ actor?: ActorType }> };
+      }
+    | undefined;
+
+  // For players: need to have a token selected
+  // For GM: can use any controlled token or just open for the NPC itself
+  const playerToken = canvasObj?.tokens?.controlled?.find((t) => t.actor?.id !== npcActor.id);
+  const playerActor = playerToken?.actor;
+
+  if (gameObj?.user?.isGM) {
+    // GM gets a choice dialog
+    if (playerActor?.id) {
+      showGMBankChoice(bank.name, npcActor, playerActor);
+    } else {
+      // No player token selected, just open NPC sheet or show message
+      new Dialog({
+        title: `🏦 ${bank.name}`,
+        content: `
+          <div style="text-align: center; padding: 10px;">
+            <p>No player token selected.</p>
+            <p style="font-size: 0.9em; color: #9ca3af;">Select a player token first to open the bank for them, or open the NPC sheet.</p>
+          </div>
+        `,
+        buttons: {
+          sheet: {
+            icon: '<i class="fas fa-user"></i>',
+            label: "Open NPC Sheet",
+            callback: (): void => {
+              npcActor.sheet?.render(true);
+            },
+          },
+          cancel: {
+            icon: '<i class="fas fa-times"></i>',
+            label: "Cancel",
+          },
+        },
+        default: "sheet",
+      }).render(true);
+    }
+  } else {
+    // Player: open bank directly
+    if (!playerActor?.id) {
+      notifications?.warn("Select your character token first, then click on the bank NPC");
+      return;
+    }
+
+    openBankForActor(playerActor);
   }
 };
 
@@ -203,15 +308,30 @@ Hooks.on("renderTokenHUD", (_hud: Application, html: JQuery, data: { actorId?: s
 });
 
 /**
- * Handle actor sheet interactions for Bank NPCs
- * When a player double-clicks a Bank NPC token, open the bank
+ * Handle double-click on tokens - Bank NPC interaction
+ * Players double-click bank NPC to open bank
+ * GMs get a choice dialog
  */
-Hooks.on("clickToken", (_token: TokenType, _controlled: boolean) => {
-  // Placeholder for potential future double-click handling
+Hooks.on("controlToken", (token: TokenType, controlled: boolean) => {
+  // Only trigger on gaining control (not releasing)
+  if (!controlled) return;
+
+  const actor = token.actor ?? token.document?.actor;
+  if (!actor?.id) return;
+
+  // Check if this is a bank NPC
+  const bank = getBankByNPC(actor.id);
+  if (!bank) return; // Not a bank NPC, normal behavior
+
+  // This is a bank NPC - handle the interaction
+  // Use a small delay to let the normal selection happen first
+  setTimeout(() => {
+    handleBankNPCInteraction(actor);
+  }, 100);
 });
 
 /**
- * Double-click on token to interact with Bank NPC
+ * Alternative: Double-click handler for bank NPCs
  */
 Hooks.on("canvasReady", () => {
   const canvasObj = canvas as
@@ -219,67 +339,40 @@ Hooks.on("canvasReady", () => {
         stage?: {
           on: (
             event: string,
-            callback: (event: { target?: { actor?: ActorType } }) => void
+            callback: (event: { data?: { originalEvent?: MouseEvent } }) => void
           ) => void;
+        };
+        tokens?: {
+          placeables?: TokenType[];
+          controlled?: TokenType[];
         };
       }
     | undefined;
 
   if (!canvasObj?.stage) return;
 
-  // This would be the ideal approach but Foundry doesn't have native dblclick
-  // Instead we'll use the Actor Sheet interaction
-  log("Canvas ready - Bank NPC interactions via actor sheet");
-});
+  // Listen for double-clicks on canvas
+  canvasObj.stage.on("dblclick", (event) => {
+    // Get clicked position
+    const originalEvent = event.data?.originalEvent;
+    if (!originalEvent) return;
 
-/**
- * When Actor Sheet renders, add bank button if it's a Bank NPC
- */
-Hooks.on("renderActorSheet", (_sheet: Application, html: JQuery, data: { actor?: ActorType }) => {
-  const actor = data.actor;
-  if (!actor?.id) return;
+    // Find if we double-clicked a token
+    const tokens = canvasObj.tokens?.placeables ?? [];
+    for (const token of tokens) {
+      const actor = token.actor ?? token.document?.actor;
+      if (!actor?.id) continue;
 
-  // Check if this actor is a Bank NPC (either via flags or EconomyManager)
-  const bankFromFlags = isActorBank(actor) ? getActorBankData(actor) : null;
-  const bankFromManager = getBankByNPC(actor.id);
-
-  const bankName = bankFromManager?.name ?? bankFromFlags?.bankName ?? null;
-  if (!bankName) return;
-
-  // Add a prominent "Open Bank" button to the sheet
-  const bankButton = $(`
-    <div class="fax-bank-npc-banner">
-      <button type="button" class="fax-bank-open-btn">
-        <i class="fas fa-university"></i>
-        Open ${bankName}
-      </button>
-    </div>
-  `);
-
-  bankButton.find(".fax-bank-open-btn").on("click", (event) => {
-    event.preventDefault();
-
-    // Get the currently controlled token's actor (the player's character)
-    const canvasObj = canvas as
-      | {
-          tokens?: { controlled?: Array<{ actor?: ActorType }> };
-        }
-      | undefined;
-    const playerToken = canvasObj?.tokens?.controlled?.[0];
-
-    if (!playerToken?.actor?.id) {
-      const notifications = ui.notifications as NotificationsType | undefined;
-      notifications?.warn("Select your character token first, then click to open the bank");
-      return;
+      // Check if this actor is a bank NPC
+      const bank = getBankByNPC(actor.id);
+      if (bank) {
+        handleBankNPCInteraction(actor);
+        break;
+      }
     }
-
-    openBankForActor(playerToken.actor);
   });
 
-  // Prepend to sheet header
-  html.find(".window-header").after(bankButton);
-
-  log(`Added bank button to ${actor.name ?? "actor"} sheet`);
+  log("Canvas ready - Bank NPC double-click handler active");
 });
 
 /**
@@ -342,10 +435,10 @@ Hooks.on(
       <div class="fax-bank-help">
         <h3>🏦 FAX-BANK Commands</h3>
         <p><strong>/bank</strong> - Show this help</p>
-        <p><strong>Token HUD</strong> - Right-click token, click bank icon</p>
-        <p><strong>Bank NPCs</strong> - Click "Open Bank" on NPC sheet</p>
+        <p><strong>Token HUD</strong> - Right-click your token, click bank icon</p>
+        <p><strong>Bank NPCs</strong> - Click on a Bank NPC token to open bank</p>
         <p><strong>Console</strong> - FAXBANK.openAdmin() or FAXBANK.openBank(actorId)</p>
-        ${gameObj?.user?.isGM ? "<p><strong>Admin</strong> - Token Controls sidebar</p>" : ""}
+        ${gameObj?.user?.isGM ? "<p><strong>Admin</strong> - Token Controls sidebar → Bank icon</p>" : ""}
       </div>
     `;
 

@@ -1,5 +1,5 @@
 /**
- * AdminPanel - Full GM interface for managing economies, currencies, banks, and NPCs
+ * AdminPanel - Full GM interface for managing economies, currencies, banks, and accounts
  */
 
 import { MODULE_ID } from "../constants";
@@ -14,8 +14,11 @@ import {
   updateBank,
   addCurrency,
   removeCurrency,
+  getAccountsByBank,
+  getTransactions,
   type Economy,
   type Bank,
+  type BankAccount,
 } from "../data/EconomyManager";
 import { getGameSystem, isSystemSupported } from "../systems/SystemCurrency";
 
@@ -46,9 +49,26 @@ interface AdminPanelData {
   gameSystem: string;
   isSupported: boolean;
   economies: Economy[];
-  banks: Bank[];
+  banks: BanksWithEconomy[];
+  accounts: AccountsWithBank[];
   availableActors: Array<{ id: string; name: string; type: string }>;
   activeTab: string;
+  showEconomies: boolean;
+  showBanks: boolean;
+  showAccounts: boolean;
+  showHelp: boolean;
+}
+
+interface BanksWithEconomy extends Bank {
+  economyName: string;
+  npcName?: string;
+}
+
+interface AccountsWithBank extends BankAccount {
+  bankName: string;
+  economyName: string;
+  balanceDisplay: string;
+  transactionCount: number;
 }
 
 /**
@@ -62,16 +82,17 @@ export class AdminPanel extends Application {
       id: "fax-bank-admin",
       title: "🏦 FAX-BANK Administration",
       template: `modules/${MODULE_ID}/templates/admin-panel.hbs`,
-      width: 700,
-      height: 600,
+      width: 750,
+      height: 650,
       classes: ["fax-bank", "admin-panel"],
       resizable: true,
-      tabs: [{ navSelector: ".tabs", contentSelector: ".content", initial: "economies" }],
     }) as ApplicationOptions;
   }
 
   override getData(): AdminPanelData {
     const gameObj = game as GameWithActors | undefined;
+    const economies = getEconomies();
+    const banks = getBanks();
 
     // Get all actors for NPC assignment
     const availableActors: Array<{ id: string; name: string; type: string }> = [];
@@ -87,13 +108,55 @@ export class AdminPanel extends Application {
       }
     }
 
+    // Enrich banks with economy names and NPC names
+    const banksWithEconomy: BanksWithEconomy[] = banks.map((bank) => {
+      const economy = economies.find((e) => e.id === bank.economyId);
+      const npc = bank.npcActorId
+        ? availableActors.find((a) => a.id === bank.npcActorId)
+        : undefined;
+      return {
+        ...bank,
+        economyName: economy?.name ?? "Unknown",
+        npcName: npc?.name,
+      };
+    });
+
+    // Get all accounts with bank info
+    const accountsWithBank: AccountsWithBank[] = [];
+    for (const bank of banks) {
+      const economy = economies.find((e) => e.id === bank.economyId);
+      const accounts = getAccountsByBank(bank.id);
+      for (const account of accounts) {
+        const transactions = getTransactions(account.id);
+        const balanceParts: string[] = [];
+        for (const [currencyId, amount] of Object.entries(account.balances)) {
+          if (amount > 0) {
+            const currency = economy?.currencies.find((c) => c.id === currencyId);
+            balanceParts.push(`${amount} ${currency?.abbrev ?? currencyId}`);
+          }
+        }
+        accountsWithBank.push({
+          ...account,
+          bankName: bank.name,
+          economyName: economy?.name ?? "Unknown",
+          balanceDisplay: balanceParts.length > 0 ? balanceParts.join(", ") : "Empty",
+          transactionCount: transactions.length,
+        });
+      }
+    }
+
     return {
       gameSystem: getGameSystem(),
       isSupported: isSystemSupported(),
-      economies: getEconomies(),
-      banks: getBanks(),
+      economies,
+      banks: banksWithEconomy,
+      accounts: accountsWithBank,
       availableActors,
       activeTab: this.activeTab,
+      showEconomies: this.activeTab === "economies",
+      showBanks: this.activeTab === "banks",
+      showAccounts: this.activeTab === "accounts",
+      showHelp: this.activeTab === "help",
     };
   }
 
@@ -101,6 +164,15 @@ export class AdminPanel extends Application {
     super.activateListeners(html);
 
     const notifications = ui.notifications as NotificationsType | undefined;
+    const gameObj = game as GameWithActors | undefined;
+
+    // Set selected NPC in dropdowns based on data attribute
+    html.find(".bank-item").each((_i, el) => {
+      const npcActorId = el.dataset.npcActorId;
+      if (npcActorId) {
+        $(el).find(".bank-npc-select").val(npcActorId);
+      }
+    });
 
     // Tab switching
     html.find(".tab-btn").on("click", (event) => {
@@ -266,6 +338,19 @@ export class AdminPanel extends Application {
           this.render();
         }
       });
+    });
+
+    // Open actor sheet for NPC
+    html.find(".view-npc-btn").on("click", (event) => {
+      const actorId = event.currentTarget.dataset.actorId;
+      if (!actorId) return;
+
+      const actor = gameObj?.actors?.get(actorId);
+      if (actor) {
+        // Open the actor sheet
+        const actorDoc = actor as unknown as { sheet?: { render: (force: boolean) => void } };
+        actorDoc.sheet?.render(true);
+      }
     });
 
     // Refresh
