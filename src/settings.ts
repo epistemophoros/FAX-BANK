@@ -16,14 +16,19 @@ type GameWithSettings = {
   };
 };
 
+type NotificationsType = {
+  info: (msg: string) => void;
+  warn: (msg: string) => void;
+};
+
 /**
- * Admin Panel Launcher - Simple button in settings
+ * Settings Menu - Simple launcher for Admin Panel
  */
-class AdminPanelLauncher extends FormApplication {
+class SettingsMenu extends FormApplication {
   static override get defaultOptions(): FormApplicationOptions {
     return foundry.utils.mergeObject(super.defaultOptions, {
-      id: "fax-bank-admin-launcher",
-      title: "FAX-BANK Admin Panel",
+      id: "fax-bank-settings-menu",
+      title: "FAX-BANK",
       template: `modules/${MODULE_ID}/templates/settings-menu.hbs`,
       width: 400,
       height: "auto",
@@ -39,6 +44,8 @@ class AdminPanelLauncher extends FormApplication {
   override activateListeners(html: JQuery): void {
     super.activateListeners(html);
 
+    const notifications = ui.notifications as NotificationsType | undefined;
+
     // Admin Panel button
     html.find("#fax-bank-open-admin").on("click", () => {
       import("./applications/AdminPanel")
@@ -46,7 +53,7 @@ class AdminPanelLauncher extends FormApplication {
           new AdminPanel().render(true);
         })
         .catch(() => {
-          log("Failed to open Admin Panel");
+          notifications?.warn("Failed to open Admin Panel");
         });
       void this.close();
     });
@@ -65,12 +72,11 @@ class AdminPanelLauncher extends FormApplication {
             new BankDialog(token.actor?.id ?? "", token.actor?.name ?? "Unknown").render(true);
           })
           .catch(() => {
-            log("Failed to open Bank Dialog");
+            notifications?.warn("Failed to open Bank Dialog");
           });
         void this.close();
       } else {
-        type Notifications = { warn: (msg: string) => void };
-        (ui.notifications as Notifications | undefined)?.warn("Select a token first");
+        notifications?.warn("Select a token first");
       }
     });
   }
@@ -90,20 +96,20 @@ export const registerSettings = (): void => {
   const gameObj = game as GameWithSettings | undefined;
   if (!gameObj?.settings) return;
 
-  // Settings Menu Button - Opens the launcher
+  // Settings Menu Button
   gameObj.settings.registerMenu(MODULE_ID, "launcher", {
     name: "🏦 Open FAX-BANK",
     label: "Open FAX-BANK",
-    hint: "Open Admin Panel or Bank Dialog",
+    hint: "Open Admin Panel (GM) or Bank Dialog",
     icon: "fas fa-university",
-    type: AdminPanelLauncher,
+    type: SettingsMenu,
     restricted: false,
   });
 
-  // Token HUD setting
+  // Show Token HUD button
   gameObj.settings.register(MODULE_ID, SETTINGS.ENABLE_FEATURE, {
-    name: "✅ Show Bank on Token HUD",
-    hint: "Show bank button on Token HUD (Recommended: ON)",
+    name: "Show Bank Button on Token HUD",
+    hint: "Display a bank icon when right-clicking tokens",
     scope: "world",
     config: true,
     type: Boolean,
@@ -111,18 +117,7 @@ export const registerSettings = (): void => {
     requiresReload: false,
   });
 
-  // Shift+Click setting
-  gameObj.settings.register(MODULE_ID, SETTINGS.DEBUG_MODE, {
-    name: "✅ Shift+Click Opens Bank",
-    hint: "Shift+click with token selected opens bank (Recommended: ON)",
-    scope: "world",
-    config: true,
-    type: Boolean,
-    default: true,
-    requiresReload: false,
-  });
-
-  // Currency format
+  // Currency display format
   gameObj.settings.register(MODULE_ID, SETTINGS.CUSTOM_MESSAGE, {
     name: "Currency Display Format",
     hint: "How to display currency amounts",
@@ -138,6 +133,17 @@ export const registerSettings = (): void => {
     requiresReload: false,
   });
 
+  // Debug mode (hidden, for developers)
+  gameObj.settings.register(MODULE_ID, SETTINGS.DEBUG_MODE, {
+    name: "Debug Mode",
+    hint: "Enable debug logging",
+    scope: "client",
+    config: false,
+    type: Boolean,
+    default: false,
+    requiresReload: false,
+  });
+
   log("Settings registered");
 };
 
@@ -148,8 +154,8 @@ export const getSetting = <T>(key: string): T => {
   const gameObj = game as GameWithSettings | undefined;
   if (!gameObj?.settings) {
     if (key === SETTINGS.ENABLE_FEATURE) return true as T;
-    if (key === SETTINGS.DEBUG_MODE) return true as T;
     if (key === SETTINGS.CUSTOM_MESSAGE) return "abbreviation" as T;
+    if (key === SETTINGS.DEBUG_MODE) return false as T;
     return "" as T;
   }
 
@@ -157,8 +163,8 @@ export const getSetting = <T>(key: string): T => {
     return gameObj.settings.get(MODULE_ID, key) as T;
   } catch {
     if (key === SETTINGS.ENABLE_FEATURE) return true as T;
-    if (key === SETTINGS.DEBUG_MODE) return true as T;
     if (key === SETTINGS.CUSTOM_MESSAGE) return "abbreviation" as T;
+    if (key === SETTINGS.DEBUG_MODE) return false as T;
     return "" as T;
   }
 };

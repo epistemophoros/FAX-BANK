@@ -1,109 +1,89 @@
 <div class="fax-bank-dialog">
-  <header class="dialog-header">
-    <h2><i class="fas fa-user"></i> {{actorName}}</h2>
+  {{! Header with actor info }}
+  <header class="bank-header">
+    <img src="{{actorImg}}" alt="{{actorName}}" class="actor-portrait" />
+    <div class="actor-info">
+      <h2>{{actorName}}</h2>
+      <p class="current-wealth">{{currencyDisplay}}</p>
+    </div>
   </header>
 
-  <div class="dialog-body">
-    <!-- Accounts List -->
-    <section class="accounts-section">
-      <div class="section-header">
-        <h3><i class="fas fa-wallet"></i> My Accounts</h3>
-        <button type="button" class="btn btn-sm btn-primary" data-action="create-account">
-          <i class="fas fa-plus"></i> New
-        </button>
-      </div>
+  {{#unless isSupported}}
+    <div class="warning-banner">
+      ⚠️ Game system "{{gameSystem}}" has limited support. Currency may not sync correctly.
+    </div>
+  {{/unless}}
 
-      {{#if accounts.length}}
-        <div class="accounts-list">
-          {{#each accounts as |account|}}
-            <div class="account-item {{#if (eq account.id ../selectedAccount.id)}}selected{{/if}}" 
-                 data-action="select-account" 
-                 data-account-id="{{account.id}}"
-                 tabindex="0"
-                 role="button">
-              <div class="account-info">
-                <span class="account-name">{{account.name}}</span>
-                <span class="account-bank">{{account.bank.name}}</span>
-              </div>
-              <div class="account-balance" style="color: {{account.currency.color}}">
-                {{account.currency.symbol}} {{account.balance}} {{account.currency.abbreviation}}
-              </div>
-            </div>
-          {{/each}}
+  {{! Current Currency }}
+  <section class="bank-section currency-overview">
+    <h3>💰 Current Currency</h3>
+    <div class="currency-grid">
+      {{#each currencies}}
+        <div class="currency-item">
+          <span class="currency-amount">{{this.amount}}</span>
+          <span class="currency-name">{{this.name}}</span>
         </div>
-      {{else}}
-        <div class="empty-message">
-          <p>No accounts yet. Create one to get started!</p>
-        </div>
-      {{/if}}
-    </section>
+      {{/each}}
+    </div>
+  </section>
 
-    {{#if selectedAccount}}
-      <!-- Selected Account Details -->
-      <section class="account-details">
-        <div class="detail-header">
-          <h3>{{selectedAccount.name}}</h3>
-          <span class="bank-name">at {{selectedAccount.bank.name}}</span>
-        </div>
+  {{! Add Currency (GM Only) }}
+  {{#if isGM}}
+  <section class="bank-section add-currency">
+    <h3>➕ Add Currency (GM)</h3>
+    <div class="form-row inline">
+      <select id="add-currency-type">
+        {{#each currencies}}
+          <option value="{{this.key}}">{{this.name}}</option>
+        {{/each}}
+      </select>
+      <input type="number" id="add-currency-amount" min="1" placeholder="Amount" />
+      <button type="button" class="add-currency-btn">Add</button>
+    </div>
+  </section>
+  {{/if}}
 
-        <div class="balance-display">
-          <span class="balance-label">Balance</span>
-          <span class="balance-amount" style="color: {{selectedAccount.currency.color}}">
-            {{selectedAccount.currency.symbol}} {{selectedAccount.balance}} {{selectedAccount.currency.abbreviation}}
-          </span>
-        </div>
+  {{! Spend Currency }}
+  <section class="bank-section remove-currency">
+    <h3>➖ Spend Currency</h3>
+    <div class="form-row inline">
+      <select id="remove-currency-type">
+        {{#each currencies}}
+          <option value="{{this.key}}">{{this.name}}</option>
+        {{/each}}
+      </select>
+      <input type="number" id="remove-currency-amount" min="1" placeholder="Amount" />
+      <button type="button" class="remove-currency-btn">Spend</button>
+    </div>
+  </section>
 
-        <div class="action-buttons">
-          <button type="button" class="btn btn-success" data-action="deposit">
-            <i class="fas fa-arrow-down"></i> Deposit
-          </button>
-          <button type="button" class="btn btn-warning" data-action="withdraw" {{#unless selectedAccount.balance}}disabled{{/unless}}>
-            <i class="fas fa-arrow-up"></i> Withdraw
-          </button>
-          <button type="button" class="btn btn-info" data-action="transfer" {{#unless selectedAccount.balance}}disabled{{/unless}}>
-            <i class="fas fa-exchange-alt"></i> Transfer
-          </button>
-        </div>
-      </section>
+  {{! Transfer Currency }}
+  <section class="bank-section transfer-currency">
+    <h3>↔️ Transfer to Another Character</h3>
+    <div class="form-row">
+      <label for="transfer-target">Recipient:</label>
+      <select id="transfer-target">
+        <option value="">-- Select Character --</option>
+        {{#each otherActors}}
+          <option value="{{this.id}}">{{this.name}}</option>
+        {{/each}}
+      </select>
+    </div>
+    <div class="form-row inline">
+      <select id="transfer-currency-type">
+        {{#each currencies}}
+          <option value="{{this.key}}">{{this.name}}</option>
+        {{/each}}
+      </select>
+      <input type="number" id="transfer-amount" min="1" placeholder="Amount" />
+      <button type="button" class="transfer-btn">Transfer</button>
+    </div>
+  </section>
 
-      <!-- Transaction History -->
-      <section class="transactions-section">
-        <h4><i class="fas fa-history"></i> Recent Transactions</h4>
-        {{#if transactions.length}}
-          <div class="transactions-list">
-            {{#each transactions as |tx|}}
-              <div class="transaction-item tx-{{tx.type}}">
-                <div class="tx-icon">
-                  {{#if (eq tx.type "deposit")}}
-                    <i class="fas fa-arrow-down"></i>
-                  {{else if (eq tx.type "withdrawal")}}
-                    <i class="fas fa-arrow-up"></i>
-                  {{else if (eq tx.type "transfer")}}
-                    <i class="fas fa-exchange-alt"></i>
-                  {{else}}
-                    <i class="fas fa-circle"></i>
-                  {{/if}}
-                </div>
-                <div class="tx-details">
-                  <span class="tx-description">{{tx.description}}</span>
-                  <span class="tx-date">{{formatDate tx.createdAt}}</span>
-                </div>
-                <div class="tx-amount {{#if (gt tx.amount 0)}}positive{{else}}negative{{/if}}">
-                  {{#if (gt tx.amount 0)}}+{{/if}}{{tx.amount}}
-                </div>
-              </div>
-            {{/each}}
-          </div>
-        {{else}}
-          <p class="empty-message">No transactions yet.</p>
-        {{/if}}
-      </section>
-    {{else}}
-      <section class="no-selection">
-        <i class="fas fa-hand-pointer fa-2x"></i>
-        <p>Select an account to view details and make transactions.</p>
-      </section>
-    {{/if}}
-  </div>
+  {{! Footer }}
+  <footer class="bank-footer">
+    <button type="button" class="refresh-btn">
+      <i class="fas fa-sync"></i> Refresh
+    </button>
+  </footer>
 </div>
-

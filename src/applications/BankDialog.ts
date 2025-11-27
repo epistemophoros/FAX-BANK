@@ -1,33 +1,69 @@
 /**
- * BankDialog - Player-facing interface for bank transactions
+ * BankDialog - Player interface for banking with REAL character sheet currency
  */
 
-import { MODULE_ID, MODULE_NAME } from "../constants";
+import { MODULE_ID } from "../constants";
 import { log } from "../utils/logger";
-import * as EconomyManager from "../data/EconomyManager";
-import * as BankManager from "../data/BankManager";
-import type { Account, Bank, Currency, Transaction } from "../types";
+import {
+  getActorCurrency,
+  formatAllCurrency,
+  getAvailableCurrencies,
+  actorHasCurrency,
+  addCurrencyToActor,
+  removeCurrencyFromActor,
+  formatCurrency,
+  getGameSystem,
+  isSystemSupported,
+  CURRENCY_NAMES,
+} from "../systems/SystemCurrency";
+import { requestTransfer } from "../systems/SocketManager";
+
+type ActorType = {
+  id?: string;
+  name?: string;
+  img?: string;
+  isOwner?: boolean;
+  system?: {
+    currency?: Record<string, number>;
+  };
+  update?: (data: object) => Promise<unknown>;
+};
+
+type GameWithActors = {
+  actors?: {
+    get: (id: string) => ActorType | undefined;
+    contents?: ActorType[];
+  };
+  user?: {
+    isGM?: boolean;
+  };
+};
+
+type NotificationsType = {
+  info: (msg: string) => void;
+  warn: (msg: string) => void;
+  error: (msg: string) => void;
+};
 
 interface BankDialogData {
   actorId: string;
   actorName: string;
-  accounts: Array<Account & { currency: Currency | undefined; bank: Bank | undefined }>;
-  availableBanks: Array<Bank & { currencies: Currency[] }>;
-  selectedAccount: (Account & { currency: Currency | undefined; bank: Bank | undefined }) | null;
-  transactions: Transaction[];
+  actorImg: string;
+  currency: Record<string, number>;
+  currencyDisplay: string;
+  currencies: Array<{ key: string; name: string; amount: number }>;
+  gameSystem: string;
+  isSupported: boolean;
+  isGM: boolean;
+  otherActors: Array<{ id: string; name: string }>;
 }
 
-// Type for notifications
-type Notifications = {
-  info: (message: string) => void;
-  warn: (message: string) => void;
-  error: (message: string) => void;
-};
-
+/**
+ * Bank Dialog for players to manage their character's money
+ */
 export class BankDialog extends Application {
   private actorId: string;
   private actorName: string;
-  private selectedAccountId: string | null = null;
 
   constructor(actorId: string, actorName: string) {
     super();
@@ -37,336 +73,172 @@ export class BankDialog extends Application {
 
   static override get defaultOptions(): ApplicationOptions {
     return foundry.utils.mergeObject(super.defaultOptions, {
-      id: `${MODULE_ID}-bank-dialog`,
-      title: `${MODULE_NAME} - Bank`,
+      id: "fax-bank-dialog",
+      title: "🏦 Bank",
       template: `modules/${MODULE_ID}/templates/bank-dialog.hbs`,
-      classes: [MODULE_ID, "bank-dialog"],
-      width: 500,
-      height: 550,
+      width: 450,
+      height: "auto" as const,
+      classes: ["fax-bank", "bank-dialog"],
       resizable: true,
     }) as ApplicationOptions;
   }
 
   override get title(): string {
-    return `🏦 ${this.actorName}'s Bank`;
+    return `🏦 ${this.actorName}'s Wallet`;
   }
 
   override getData(): BankDialogData {
-    // Get accounts for this actor
-    const rawAccounts = BankManager.getAccounts({ ownerId: this.actorId });
-    const accounts = rawAccounts.map((account) => ({
-      ...account,
-      currency: EconomyManager.getCurrency(account.currencyId),
-      bank: BankManager.getBank(account.bankId),
+    const gameObj = game as GameWithActors | undefined;
+    const actor = gameObj?.actors?.get(this.actorId);
+
+    const currency = actor ? getActorCurrency(actor) : {};
+    const currencies = getAvailableCurrencies().map((key) => ({
+      key,
+      name: CURRENCY_NAMES[key] ?? key,
+      amount: (currency[key as keyof typeof currency] as number) ?? 0,
     }));
 
-    // Get available banks for creating new accounts
-    const banks = BankManager.getBanks();
-    const availableBanks = banks.map((bank) => ({
-      ...bank,
-      currencies: EconomyManager.getCurrencies(bank.economyId),
-    }));
-
-    // Get selected account details
-    let selectedAccount = null;
-    let transactions: Transaction[] = [];
-    if (this.selectedAccountId) {
-      const account = accounts.find((a) => a.id === this.selectedAccountId);
-      if (account) {
-        selectedAccount = account;
-        transactions = BankManager.getTransactions(this.selectedAccountId, 20);
+    // Get other actors for transfer (excluding self)
+    const otherActors: Array<{ id: string; name: string }> = [];
+    if (gameObj?.actors?.contents) {
+      for (const a of gameObj.actors.contents) {
+        if (a.id && a.id !== this.actorId && a.name) {
+          otherActors.push({ id: a.id, name: a.name });
+        }
       }
     }
 
     return {
       actorId: this.actorId,
       actorName: this.actorName,
-      accounts,
-      availableBanks,
-      selectedAccount,
-      transactions,
+      actorImg: actor?.img ?? "icons/svg/mystery-man.svg",
+      currency: currency as Record<string, number>,
+      currencyDisplay: formatAllCurrency(currency),
+      currencies,
+      gameSystem: getGameSystem(),
+      isSupported: isSystemSupported(),
+      isGM: gameObj?.user?.isGM ?? false,
+      otherActors,
     };
   }
 
   override activateListeners(html: JQuery): void {
     super.activateListeners(html);
 
-    // Account selection
-    html.find('[data-action="select-account"]').on("click", (e) => {
-      this.selectedAccountId = $(e.currentTarget).data("account-id") as string;
+    const notifications = ui.notifications as NotificationsType | undefined;
+    const gameObj = game as GameWithActors | undefined;
+
+    // Add currency button
+    html.find(".add-currency-btn").on("click", (event) => {
+      event.preventDefault();
+      const currency = html.find("#add-currency-type").val() as string;
+      const amountStr = html.find("#add-currency-amount").val() as string;
+      const amount = parseInt(amountStr, 10);
+
+      if (!currency || isNaN(amount) || amount <= 0) {
+        notifications?.warn("Enter a valid currency and amount");
+        return;
+      }
+
+      // Only GM can add currency (prevents cheating)
+      if (!gameObj?.user?.isGM) {
+        notifications?.error("Only the GM can add currency");
+        return;
+      }
+
+      const actor = gameObj.actors?.get(this.actorId);
+      if (!actor) {
+        notifications?.error("Actor not found");
+        return;
+      }
+
+      void addCurrencyToActor(actor, currency, amount).then((success) => {
+        if (success) {
+          notifications?.info(`Added ${formatCurrency(amount, currency)}`);
+          this.render();
+        } else {
+          notifications?.error("Failed to add currency");
+        }
+      });
+    });
+
+    // Remove currency button
+    html.find(".remove-currency-btn").on("click", (event) => {
+      event.preventDefault();
+      const currency = html.find("#remove-currency-type").val() as string;
+      const amountStr = html.find("#remove-currency-amount").val() as string;
+      const amount = parseInt(amountStr, 10);
+
+      if (!currency || isNaN(amount) || amount <= 0) {
+        notifications?.warn("Enter a valid currency and amount");
+        return;
+      }
+
+      const actor = gameObj?.actors?.get(this.actorId);
+      if (!actor) {
+        notifications?.error("Actor not found");
+        return;
+      }
+
+      // Check if actor has enough
+      if (!actorHasCurrency(actor, currency, amount)) {
+        notifications?.error(`Not enough ${currency}!`);
+        return;
+      }
+
+      void removeCurrencyFromActor(actor, currency, amount).then((success) => {
+        if (success) {
+          notifications?.info(`Removed ${formatCurrency(amount, currency)}`);
+          this.render();
+        } else {
+          notifications?.error("Failed to remove currency");
+        }
+      });
+    });
+
+    // Transfer button
+    html.find(".transfer-btn").on("click", (event) => {
+      event.preventDefault();
+      const targetActorId = html.find("#transfer-target").val() as string;
+      const currency = html.find("#transfer-currency-type").val() as string;
+      const amountStr = html.find("#transfer-amount").val() as string;
+      const amount = parseInt(amountStr, 10);
+
+      if (!targetActorId) {
+        notifications?.warn("Select a recipient");
+        return;
+      }
+
+      if (!currency || isNaN(amount) || amount <= 0) {
+        notifications?.warn("Enter a valid currency and amount");
+        return;
+      }
+
+      const actor = gameObj?.actors?.get(this.actorId);
+      if (!actor) {
+        notifications?.error("Actor not found");
+        return;
+      }
+
+      // Check if actor has enough
+      if (!actorHasCurrency(actor, currency, amount)) {
+        notifications?.error(`Not enough ${currency}!`);
+        return;
+      }
+
+      // Request transfer via socket (GM will process)
+      requestTransfer(this.actorId, targetActorId, currency, amount);
+      notifications?.info(`Transfer requested: ${formatCurrency(amount, currency)}`);
+
+      // Clear form
+      html.find("#transfer-amount").val("");
+    });
+
+    // Refresh button
+    html.find(".refresh-btn").on("click", () => {
       this.render();
     });
 
-    // Create account
-    html.find('[data-action="create-account"]').on("click", () => {
-      void this.handleCreateAccount();
-    });
-
-    // Transactions
-    html.find('[data-action="deposit"]').on("click", () => {
-      void this.handleDeposit();
-    });
-    html.find('[data-action="withdraw"]').on("click", () => {
-      void this.handleWithdraw();
-    });
-    html.find('[data-action="transfer"]').on("click", () => {
-      void this.handleTransfer();
-    });
-
-    log("Bank dialog listeners activated");
-  }
-
-  private async handleCreateAccount(): Promise<void> {
-    const banks = BankManager.getBanks();
-    if (banks.length === 0) {
-      const notifications = ui.notifications as Notifications | undefined;
-      notifications?.warn("No banks available. Ask your GM to create one.");
-      return;
-    }
-
-    // Build bank options with currencies
-    const bankOptions = banks
-      .map((bank) => {
-        const currencies = EconomyManager.getCurrencies(bank.economyId);
-        return currencies
-          .map(
-            (c) =>
-              `<option value="${bank.id}|${c.id}">${bank.name} - ${c.name} (${c.abbreviation})</option>`
-          )
-          .join("");
-      })
-      .join("");
-
-    const content = `
-      <form>
-        <div class="form-group">
-          <label>Account Name</label>
-          <input type="text" name="name" value="Main Account" required />
-        </div>
-        <div class="form-group">
-          <label>Bank & Currency</label>
-          <select name="bankCurrency" required>
-            ${bankOptions}
-          </select>
-        </div>
-      </form>
-    `;
-
-    const result = await Dialog.prompt({
-      title: "Create Bank Account",
-      content,
-      label: "Create",
-      callback: (html: JQuery) => ({
-        name: html.find('[name="name"]').val() as string,
-        bankCurrency: html.find('[name="bankCurrency"]').val() as string,
-      }),
-      rejectClose: false,
-    });
-
-    if (result?.bankCurrency) {
-      const [bankId, currencyId] = result.bankCurrency.split("|");
-      const response = await BankManager.createAccount(
-        bankId,
-        currencyId,
-        this.actorId,
-        this.actorName,
-        result.name
-      );
-
-      const notifications = ui.notifications as Notifications | undefined;
-      if (response.success) {
-        notifications?.info("Account created!");
-        this.selectedAccountId = response.data?.id ?? null;
-        this.render();
-      } else {
-        notifications?.error(response.error ?? "Failed to create account");
-      }
-    }
-  }
-
-  private async handleDeposit(): Promise<void> {
-    if (!this.selectedAccountId) return;
-
-    const account = BankManager.getAccount(this.selectedAccountId);
-    if (!account) return;
-
-    const currency = EconomyManager.getCurrency(account.currencyId);
-
-    const content = `
-      <form>
-        <div class="form-group">
-          <label>Amount (${currency?.abbreviation ?? ""})</label>
-          <input type="number" name="amount" min="0.01" step="0.01" required />
-        </div>
-        <div class="form-group">
-          <label>Description (optional)</label>
-          <input type="text" name="description" placeholder="Deposit" />
-        </div>
-      </form>
-    `;
-
-    const result = await Dialog.prompt({
-      title: "Deposit Funds",
-      content,
-      label: "Deposit",
-      callback: (html: JQuery) => ({
-        amount: parseFloat(html.find('[name="amount"]').val() as string),
-        description: (html.find('[name="description"]').val() as string) || "Deposit",
-      }),
-      rejectClose: false,
-    });
-
-    if (result && result.amount > 0) {
-      const response = await BankManager.deposit(
-        this.selectedAccountId,
-        result.amount,
-        result.description,
-        this.actorId
-      );
-
-      const notifications = ui.notifications as Notifications | undefined;
-      if (response.success) {
-        notifications?.info(`Deposited ${result.amount} ${currency?.abbreviation ?? ""}`);
-        this.render();
-      } else {
-        notifications?.error(response.error ?? "Deposit failed");
-      }
-    }
-  }
-
-  private async handleWithdraw(): Promise<void> {
-    if (!this.selectedAccountId) return;
-
-    const account = BankManager.getAccount(this.selectedAccountId);
-    if (!account) return;
-
-    const currency = EconomyManager.getCurrency(account.currencyId);
-
-    const content = `
-      <form>
-        <p>Available: <strong>${account.balance} ${currency?.abbreviation ?? ""}</strong></p>
-        <div class="form-group">
-          <label>Amount (${currency?.abbreviation ?? ""})</label>
-          <input type="number" name="amount" min="0.01" max="${account.balance}" step="0.01" required />
-        </div>
-        <div class="form-group">
-          <label>Description (optional)</label>
-          <input type="text" name="description" placeholder="Withdrawal" />
-        </div>
-      </form>
-    `;
-
-    const result = await Dialog.prompt({
-      title: "Withdraw Funds",
-      content,
-      label: "Withdraw",
-      callback: (html: JQuery) => ({
-        amount: parseFloat(html.find('[name="amount"]').val() as string),
-        description: (html.find('[name="description"]').val() as string) || "Withdrawal",
-      }),
-      rejectClose: false,
-    });
-
-    if (result && result.amount > 0) {
-      const response = await BankManager.withdraw(
-        this.selectedAccountId,
-        result.amount,
-        result.description,
-        this.actorId
-      );
-
-      const notifications = ui.notifications as Notifications | undefined;
-      if (response.success) {
-        notifications?.info(`Withdrew ${result.amount} ${currency?.abbreviation ?? ""}`);
-        this.render();
-      } else {
-        notifications?.error(response.error ?? "Withdrawal failed");
-      }
-    }
-  }
-
-  private async handleTransfer(): Promise<void> {
-    if (!this.selectedAccountId) return;
-
-    const account = BankManager.getAccount(this.selectedAccountId);
-    if (!account) return;
-
-    const currency = EconomyManager.getCurrency(account.currencyId);
-
-    // Get all other accounts as transfer targets
-    const allAccounts = BankManager.getAccounts();
-    const otherAccounts = allAccounts.filter((a) => a.id !== this.selectedAccountId && a.isActive);
-
-    if (otherAccounts.length === 0) {
-      const notifications = ui.notifications as Notifications | undefined;
-      notifications?.warn("No other accounts available for transfer.");
-      return;
-    }
-
-    const accountOptions = otherAccounts
-      .map((a) => {
-        const c = EconomyManager.getCurrency(a.currencyId);
-        return `<option value="${a.id}">${a.ownerName} - ${a.name} (${c?.abbreviation ?? ""})</option>`;
-      })
-      .join("");
-
-    const content = `
-      <form>
-        <p>From: <strong>${account.name}</strong> (${account.balance} ${currency?.abbreviation ?? ""})</p>
-        <div class="form-group">
-          <label>To Account</label>
-          <select name="toAccountId" required>
-            ${accountOptions}
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Amount (${currency?.abbreviation ?? ""})</label>
-          <input type="number" name="amount" min="0.01" max="${account.balance}" step="0.01" required />
-        </div>
-        <div class="form-group">
-          <label>Description (optional)</label>
-          <input type="text" name="description" placeholder="Transfer" />
-        </div>
-      </form>
-    `;
-
-    const result = await Dialog.prompt({
-      title: "Transfer Funds",
-      content,
-      label: "Transfer",
-      callback: (html: JQuery) => ({
-        toAccountId: html.find('[name="toAccountId"]').val() as string,
-        amount: parseFloat(html.find('[name="amount"]').val() as string),
-        description: (html.find('[name="description"]').val() as string) || "Transfer",
-      }),
-      rejectClose: false,
-    });
-
-    if (result && result.amount > 0 && result.toAccountId) {
-      const response = await BankManager.transfer(
-        this.selectedAccountId,
-        result.toAccountId,
-        result.amount,
-        result.description,
-        this.actorId
-      );
-
-      const notifications = ui.notifications as Notifications | undefined;
-      if (response.success) {
-        notifications?.info(`Transferred ${result.amount} ${currency?.abbreviation ?? ""}`);
-        this.render();
-      } else {
-        notifications?.error(response.error ?? "Transfer failed");
-      }
-    }
+    log("BankDialog listeners activated");
   }
 }
-
-/**
- * Open bank dialog for an actor
- */
-export const openBankDialog = (actorId: string, actorName: string): BankDialog => {
-  const dialog = new BankDialog(actorId, actorName);
-  dialog.render(true);
-  return dialog;
-};
