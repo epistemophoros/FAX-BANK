@@ -29,6 +29,6 @@
       "path": "languages/en.json"
     }
   ],
-  "socket": false,
+  "socket": true,
   "flags": {}
 }
