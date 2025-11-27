@@ -1,33 +1,66 @@
 /**
  * FAX-BANK Styles
+ * A refined dark theme with gold accents
  */
 
 :root {
-  --fax-primary: #4a7c59;
-  --fax-primary-dark: #3d6a4a;
-  --fax-secondary: #6b7280;
-  --fax-gold: #d4af37;
-  --fax-gold-dark: #b8960f;
-  --fax-bg: #1e1e2e;
-  --fax-bg-light: #2a2a3e;
-  --fax-bg-lighter: #363650;
-  --fax-text: #e4e4e7;
-  --fax-text-muted: #9ca3af;
-  --fax-border: #404060;
-  --fax-success: #22c55e;
-  --fax-warning: #f59e0b;
-  --fax-danger: #ef4444;
+  /* Core palette */
+  --fax-gold: #c9a227;
+  --fax-gold-light: #e6c453;
+  --fax-gold-dark: #9a7b1c;
+  --fax-gold-glow: rgba(201, 162, 39, 0.3);
+
+  /* Background layers */
+  --fax-bg-deep: #0f0f14;
+  --fax-bg: #16161d;
+  --fax-bg-elevated: #1e1e28;
+  --fax-bg-surface: #262633;
+  --fax-bg-hover: #2e2e3d;
+
+  /* Text */
+  --fax-text: #e8e6e3;
+  --fax-text-dim: #a09d98;
+  --fax-text-muted: #6b6966;
+
+  /* Borders */
+  --fax-border: #3a3a48;
+  --fax-border-light: #4a4a5a;
+
+  /* Semantic colors */
+  --fax-success: #3ecf8e;
+  --fax-success-dim: rgba(62, 207, 142, 0.15);
+  --fax-warning: #f0b429;
+  --fax-warning-dim: rgba(240, 180, 41, 0.15);
+  --fax-danger: #f56565;
+  --fax-danger-dim: rgba(245, 101, 101, 0.15);
+  --fax-info: #63b3ed;
+
+  /* Shadows */
+  --fax-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --fax-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --fax-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --fax-shadow-gold: 0 0 20px var(--fax-gold-glow);
+
+  /* Transitions */
+  --fax-transition: 0.15s ease;
 }
 
-/* Base */
-.fax-bank {
+/* ========== BASE STYLES ========== */
+
+.fax-bank,
+.fax-bank-admin,
+.bank-dialog,
+.fax-bank-settings {
   font-family:
+    "Modesto Condensed",
     "Signika",
     -apple-system,
     sans-serif;
+  line-height: 1.5;
 }
 
-.fax-bank .window-content {
+.fax-bank .window-content,
+.bank-dialog .window-content {
   background: var(--fax-bg);
   color: var(--fax-text);
   padding: 0;
@@ -39,188 +72,242 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  padding: 12px;
-  gap: 12px;
+  background: var(--fax-bg-deep);
 }
 
+/* Header */
 .fax-bank-admin .admin-header {
-  text-align: center;
-  padding-bottom: 10px;
-  border-bottom: 2px solid var(--fax-gold);
+  background: linear-gradient(135deg, var(--fax-bg-elevated) 0%, var(--fax-bg) 100%);
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--fax-gold);
+  position: relative;
+}
+
+.fax-bank-admin .admin-header::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--fax-gold), transparent);
 }
 
 .fax-bank-admin .admin-header h2 {
-  margin: 0 0 5px 0;
+  margin: 0;
+  font-size: 1.6em;
+  font-weight: 700;
   color: var(--fax-gold);
-  font-size: 1.4em;
+  text-shadow: 0 0 20px var(--fax-gold-glow);
+  letter-spacing: 0.5px;
 }
 
 .fax-bank-admin .system-info {
-  margin: 0;
+  margin: 6px 0 0 0;
   font-size: 0.85em;
-  color: var(--fax-text-muted);
+  color: var(--fax-text-dim);
 }
 
 .fax-bank-admin .tag {
   display: inline-block;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 0.8em;
-  font-weight: bold;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 0.75em;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-left: 8px;
 }
 
 .fax-bank-admin .tag.success {
-  background: var(--fax-success);
-  color: black;
+  background: var(--fax-success-dim);
+  color: var(--fax-success);
+  border: 1px solid var(--fax-success);
 }
 
 .fax-bank-admin .tag.warning {
-  background: var(--fax-warning);
-  color: black;
+  background: var(--fax-warning-dim);
+  color: var(--fax-warning);
+  border: 1px solid var(--fax-warning);
 }
 
 .fax-bank-admin .tag.gold {
-  background: var(--fax-gold);
-  color: black;
+  background: var(--fax-gold-glow);
+  color: var(--fax-gold);
+  border: 1px solid var(--fax-gold);
 }
 
 /* Tabs */
 .fax-bank-admin .admin-tabs {
   display: flex;
-  gap: 4px;
+  background: var(--fax-bg);
+  padding: 0 12px;
+  gap: 2px;
+  border-bottom: 1px solid var(--fax-border);
 }
 
 .fax-bank-admin .tab-btn {
   flex: 1;
-  padding: 10px 8px;
-  background: var(--fax-bg-light);
-  border: 1px solid var(--fax-border);
-  border-bottom: none;
-  border-radius: 6px 6px 0 0;
-  color: var(--fax-text);
+  padding: 12px 10px;
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  color: var(--fax-text-dim);
   cursor: pointer;
   font-size: 0.9em;
-  transition: all 0.15s;
+  font-weight: 500;
+  transition: var(--fax-transition);
+  position: relative;
 }
 
 .fax-bank-admin .tab-btn:hover {
-  background: var(--fax-bg-lighter);
+  color: var(--fax-text);
+  background: var(--fax-bg-elevated);
 }
 
 .fax-bank-admin .tab-btn.active {
-  background: var(--fax-gold);
-  color: black;
-  font-weight: bold;
-  border-color: var(--fax-gold);
+  color: var(--fax-gold);
+  border-bottom-color: var(--fax-gold);
+  background: var(--fax-bg-elevated);
 }
 
-/* Content Area */
+/* Content */
 .fax-bank-admin .admin-content {
   flex: 1;
   overflow-y: auto;
-  background: var(--fax-bg-light);
-  border-radius: 0 0 8px 8px;
-  border: 1px solid var(--fax-border);
+  background: var(--fax-bg);
+  padding: 0;
 }
 
 .fax-bank-admin .tab-panel {
-  padding: 15px;
+  padding: 20px;
 }
 
 .fax-bank-admin .panel-section {
-  margin-bottom: 20px;
+  margin-bottom: 28px;
+}
+
+.fax-bank-admin .panel-section:last-child {
+  margin-bottom: 0;
 }
 
 .fax-bank-admin .panel-section h3 {
-  margin: 0 0 8px 0;
+  margin: 0 0 12px 0;
+  font-size: 1.15em;
+  font-weight: 600;
   color: var(--fax-gold);
-  font-size: 1.1em;
-  border-bottom: 1px solid var(--fax-border);
-  padding-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .fax-bank-admin .panel-section h4 {
-  margin: 15px 0 8px 0;
-  color: var(--fax-text);
+  margin: 20px 0 10px 0;
   font-size: 0.95em;
+  font-weight: 600;
+  color: var(--fax-text);
 }
 
 .fax-bank-admin .panel-section h5 {
-  margin: 10px 0 5px 0;
-  color: var(--fax-text-muted);
+  margin: 12px 0 8px 0;
   font-size: 0.85em;
+  font-weight: 500;
+  color: var(--fax-text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .fax-bank-admin .hint {
   font-size: 0.85em;
   color: var(--fax-text-muted);
-  margin-bottom: 12px;
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  background: var(--fax-bg-elevated);
+  border-radius: 6px;
+  border-left: 3px solid var(--fax-info);
 }
 
 /* Forms */
 .fax-bank-admin .form-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin-bottom: 10px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 12px;
 }
 
 .fax-bank-admin .form-grid.cols-3 {
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
 }
 
 .fax-bank-admin .form-field {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
 .fax-bank-admin .form-field label {
-  font-size: 0.85em;
-  color: var(--fax-text-muted);
+  font-size: 0.8em;
+  font-weight: 500;
+  color: var(--fax-text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .fax-bank-admin input,
 .fax-bank-admin select {
-  padding: 8px 10px;
-  background: var(--fax-bg);
+  padding: 10px 12px;
+  background: var(--fax-bg-deep);
   border: 1px solid var(--fax-border);
-  border-radius: 4px;
+  border-radius: 6px;
   color: var(--fax-text);
   font-size: 0.9em;
+  transition: var(--fax-transition);
 }
 
 .fax-bank-admin input::placeholder {
   color: var(--fax-text-muted);
-  opacity: 0.7;
+}
+
+.fax-bank-admin input:hover,
+.fax-bank-admin select:hover {
+  border-color: var(--fax-border-light);
 }
 
 .fax-bank-admin input:focus,
 .fax-bank-admin select:focus {
   outline: none;
   border-color: var(--fax-gold);
+  box-shadow: 0 0 0 3px var(--fax-gold-glow);
 }
 
 /* Buttons */
 .fax-bank-admin .btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 18px;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
   font-size: 0.9em;
-  transition: all 0.15s;
+  font-weight: 600;
+  transition: var(--fax-transition);
+  box-shadow: var(--fax-shadow-sm);
+}
+
+.fax-bank-admin .btn:active {
+  transform: translateY(1px);
 }
 
 .fax-bank-admin .btn.primary {
-  background: var(--fax-gold);
-  color: black;
+  background: linear-gradient(135deg, var(--fax-gold) 0%, var(--fax-gold-dark) 100%);
+  color: #111;
 }
 
 .fax-bank-admin .btn.primary:hover {
-  background: var(--fax-gold-dark);
+  background: linear-gradient(135deg, var(--fax-gold-light) 0%, var(--fax-gold) 100%);
+  box-shadow: var(--fax-shadow-gold);
 }
 
 .fax-bank-admin .btn.danger {
@@ -229,42 +316,50 @@
 }
 
 .fax-bank-admin .btn.danger:hover {
-  background: #dc2626;
+  background: #e53e3e;
 }
 
 .fax-bank-admin .btn.small {
-  padding: 5px 10px;
+  padding: 6px 12px;
   font-size: 0.85em;
 }
 
 .fax-bank-admin .btn.mini {
-  padding: 3px 8px;
+  padding: 4px 8px;
   font-size: 0.8em;
 }
 
 .fax-bank-admin .btn:not(.primary):not(.danger) {
-  background: var(--fax-secondary);
-  color: white;
+  background: var(--fax-bg-surface);
+  color: var(--fax-text);
+  border: 1px solid var(--fax-border);
 }
 
 .fax-bank-admin .btn:not(.primary):not(.danger):hover {
-  background: #5b6271;
+  background: var(--fax-bg-hover);
+  border-color: var(--fax-border-light);
 }
 
 /* Item Cards */
 .fax-bank-admin .item-card {
-  background: var(--fax-bg);
+  background: var(--fax-bg-elevated);
   border: 1px solid var(--fax-border);
-  border-radius: 8px;
-  margin-bottom: 10px;
+  border-radius: 10px;
+  margin-bottom: 12px;
   overflow: hidden;
+  transition: var(--fax-transition);
+}
+
+.fax-bank-admin .item-card:hover {
+  border-color: var(--fax-border-light);
+  box-shadow: var(--fax-shadow-md);
 }
 
 .fax-bank-admin .item-header {
   display: flex;
   align-items: center;
-  padding: 10px 12px;
-  background: var(--fax-bg-lighter);
+  padding: 12px 16px;
+  background: var(--fax-bg-surface);
   border-bottom: 1px solid var(--fax-border);
 }
 
@@ -274,16 +369,18 @@
 
 .fax-bank-admin .item-title strong {
   display: block;
+  font-size: 1.05em;
   color: var(--fax-gold);
 }
 
 .fax-bank-admin .item-subtitle {
   font-size: 0.85em;
   color: var(--fax-text-muted);
+  margin-top: 2px;
 }
 
 .fax-bank-admin .item-body {
-  padding: 12px;
+  padding: 16px;
 }
 
 /* Mini Table */
@@ -291,34 +388,45 @@
   width: 100%;
   border-collapse: collapse;
   font-size: 0.85em;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .fax-bank-admin .mini-table th,
 .fax-bank-admin .mini-table td {
-  padding: 6px 8px;
+  padding: 8px 10px;
   text-align: left;
-  border-bottom: 1px solid var(--fax-border);
 }
 
 .fax-bank-admin .mini-table th {
-  background: var(--fax-bg-lighter);
+  background: var(--fax-bg-deep);
   color: var(--fax-text-muted);
-  font-weight: normal;
-  font-size: 0.9em;
+  font-weight: 500;
+  font-size: 0.85em;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--fax-border);
+}
+
+.fax-bank-admin .mini-table td {
+  border-bottom: 1px solid var(--fax-border);
+}
+
+.fax-bank-admin .mini-table tr:last-child td {
+  border-bottom: none;
 }
 
 /* Add Row */
 .fax-bank-admin .add-row {
   display: flex;
-  gap: 5px;
+  gap: 8px;
   align-items: center;
-  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--fax-border);
 }
 
 .fax-bank-admin .add-row input {
   flex: 1;
-  padding: 6px 8px;
+  padding: 8px 10px;
   font-size: 0.85em;
 }
 
@@ -326,12 +434,14 @@
 .fax-bank-admin .npc-assignment {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
+  gap: 10px;
+  margin-bottom: 10px;
 }
 
 .fax-bank-admin .npc-assignment label {
   font-size: 0.9em;
+  font-weight: 500;
+  color: var(--fax-text-dim);
   white-space: nowrap;
 }
 
@@ -340,95 +450,20 @@
 }
 
 .fax-bank-admin .npc-info {
-  font-size: 0.85em;
+  font-size: 0.9em;
   margin: 0;
-  padding: 8px;
-  background: var(--fax-bg-lighter);
-  border-radius: 4px;
+  padding: 10px 14px;
+  background: var(--fax-bg-deep);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .fax-bank-admin .npc-info.warning {
-  background: rgba(245, 158, 11, 0.2);
+  background: var(--fax-warning-dim);
   border: 1px solid var(--fax-warning);
-}
-
-/* Character Grid (Quick Access) */
-.fax-bank-admin .character-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 10px;
-  margin-bottom: 15px;
-}
-
-.fax-bank-admin .character-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 15px;
-  background: var(--fax-bg);
-  border: 2px solid var(--fax-border);
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.fax-bank-admin .character-card:hover {
-  border-color: var(--fax-gold);
-  background: var(--fax-bg-lighter);
-}
-
-.fax-bank-admin .character-card i {
-  font-size: 2em;
-  color: var(--fax-gold);
-}
-
-.fax-bank-admin .character-card .character-name {
-  font-weight: bold;
-  text-align: center;
-}
-
-/* Bank NPC Grid */
-.fax-bank-admin .bank-npc-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 10px;
-}
-
-.fax-bank-admin .bank-npc-card {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px;
-  background: var(--fax-bg);
-  border-radius: 6px;
-}
-
-.fax-bank-admin .bank-npc-info {
-  display: flex;
-  flex-direction: column;
-}
-
-.fax-bank-admin .bank-npc-info strong {
-  color: var(--fax-gold);
-}
-
-.fax-bank-admin .bank-npc-info span {
-  font-size: 0.85em;
-  color: var(--fax-text-muted);
-}
-
-.fax-bank-admin .npc-badge {
-  padding: 4px 8px;
-  background: var(--fax-success);
-  color: white;
-  border-radius: 4px;
-  font-size: 0.8em;
-}
-
-.fax-bank-admin .npc-badge.warning {
-  background: var(--fax-warning);
-  color: black;
+  color: var(--fax-warning);
 }
 
 /* Data Table */
@@ -436,75 +471,94 @@
   width: 100%;
   border-collapse: collapse;
   font-size: 0.9em;
+  background: var(--fax-bg-elevated);
+  border-radius: 8px;
+  overflow: hidden;
 }
 
 .fax-bank-admin .data-table th,
 .fax-bank-admin .data-table td {
-  padding: 10px 12px;
+  padding: 12px 16px;
   text-align: left;
-  border-bottom: 1px solid var(--fax-border);
 }
 
 .fax-bank-admin .data-table th {
-  background: var(--fax-bg-lighter);
-  color: var(--fax-text-muted);
+  background: var(--fax-bg-surface);
+  color: var(--fax-text-dim);
   font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.8em;
+  letter-spacing: 0.5px;
 }
 
-.fax-bank-admin .data-table tr:hover {
-  background: var(--fax-bg-lighter);
+.fax-bank-admin .data-table td {
+  border-bottom: 1px solid var(--fax-border);
+}
+
+.fax-bank-admin .data-table tr:last-child td {
+  border-bottom: none;
+}
+
+.fax-bank-admin .data-table tr:hover td {
+  background: var(--fax-bg-hover);
 }
 
 /* Help */
 .fax-bank-admin .help-item {
-  background: var(--fax-bg);
-  padding: 12px;
-  border-radius: 6px;
-  margin-bottom: 10px;
+  background: var(--fax-bg-elevated);
+  padding: 16px 18px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  border-left: 3px solid var(--fax-gold);
 }
 
 .fax-bank-admin .help-item h4 {
   margin: 0 0 8px 0;
   color: var(--fax-gold);
+  font-size: 1em;
 }
 
 .fax-bank-admin .help-item p {
-  margin: 0 0 5px 0;
+  margin: 0 0 6px 0;
   font-size: 0.9em;
+  color: var(--fax-text-dim);
 }
 
-.fax-bank-admin .help-item ul {
-  margin: 5px 0 0 0;
-  padding-left: 20px;
-  font-size: 0.9em;
+.fax-bank-admin .help-item p:last-child {
+  margin-bottom: 0;
 }
 
 .fax-bank-admin .help-item code {
-  background: var(--fax-bg-lighter);
-  padding: 2px 6px;
-  border-radius: 3px;
-  font-family: monospace;
-  font-size: 0.9em;
+  background: var(--fax-bg-deep);
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-family: "Fira Code", monospace;
+  font-size: 0.85em;
+  color: var(--fax-gold-light);
 }
 
 /* Empty State */
 .fax-bank-admin .empty-message {
   text-align: center;
   color: var(--fax-text-muted);
-  padding: 20px;
-  background: var(--fax-bg);
-  border-radius: 6px;
+  padding: 30px 20px;
+  background: var(--fax-bg-elevated);
+  border-radius: 8px;
+  border: 1px dashed var(--fax-border);
 }
 
 /* Footer */
 .fax-bank-admin .admin-footer {
+  padding: 12px 20px;
+  background: var(--fax-bg-deep);
+  border-top: 1px solid var(--fax-border);
   text-align: center;
-  padding-top: 10px;
 }
 
 .fax-bank-admin .refresh-btn {
-  background: var(--fax-secondary);
-  color: white;
+  background: var(--fax-bg-surface);
+  color: var(--fax-text);
+  border: 1px solid var(--fax-border);
 }
 
 /* ========== BANK DIALOG ========== */
@@ -515,116 +569,146 @@
 }
 
 .bank-dialog-content {
-  padding: 15px;
+  padding: 20px;
 }
 
 .bank-dialog-content .bank-header {
   display: flex;
   align-items: center;
-  gap: 15px;
-  margin-bottom: 20px;
-  padding-bottom: 15px;
-  border-bottom: 2px solid var(--fax-gold);
+  gap: 16px;
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--fax-border);
+  position: relative;
+}
+
+.bank-dialog-content .bank-header::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, var(--fax-gold), transparent);
 }
 
 .bank-dialog-content .actor-portrait {
-  width: 60px;
-  height: 60px;
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid var(--fax-gold);
+  border: 3px solid var(--fax-gold);
+  box-shadow: var(--fax-shadow-gold);
 }
 
 .bank-dialog-content .actor-info h2 {
   margin: 0;
+  font-size: 1.4em;
   color: var(--fax-gold);
+  font-weight: 700;
 }
 
 .bank-dialog-content .subtitle {
-  margin: 5px 0 0 0;
+  margin: 4px 0 0 0;
   color: var(--fax-text-muted);
+  font-size: 0.9em;
 }
 
 .bank-dialog-content hr {
   border: none;
-  border-top: 1px solid var(--fax-border);
-  margin: 15px 0;
+  height: 1px;
+  background: var(--fax-border);
+  margin: 20px 0;
 }
 
 .bank-dialog-content section {
-  margin-bottom: 15px;
+  margin-bottom: 20px;
 }
 
 .bank-dialog-content h3 {
-  margin: 0 0 12px 0;
+  margin: 0 0 16px 0;
   color: var(--fax-gold);
   font-size: 1.1em;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .bank-dialog-content h3 i {
-  margin-right: 6px;
+  font-size: 0.9em;
 }
 
 /* Wallet Section */
 .bank-dialog-content .wallet-display {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
   gap: 10px;
 }
 
 .bank-dialog-content .wallet-display .currency-item {
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
   align-items: center;
-  padding: 8px 12px;
-  background: var(--fax-bg-light);
-  border-radius: 6px;
+  padding: 12px;
+  background: var(--fax-bg-elevated);
+  border-radius: 8px;
   border: 1px solid var(--fax-border);
+  text-align: center;
+  transition: var(--fax-transition);
 }
 
-.bank-dialog-content .currency-name {
-  color: var(--fax-text-muted);
-  font-size: 0.9em;
+.bank-dialog-content .wallet-display .currency-item:hover {
+  border-color: var(--fax-gold);
+  background: var(--fax-bg-surface);
 }
 
 .bank-dialog-content .currency-amount {
-  font-weight: bold;
+  font-size: 1.5em;
+  font-weight: 700;
   color: var(--fax-gold);
-  font-size: 1.1em;
+  line-height: 1;
+}
+
+.bank-dialog-content .currency-name {
+  font-size: 0.85em;
+  color: var(--fax-text-dim);
+  margin-top: 4px;
 }
 
 .bank-dialog-content .currency-key {
-  font-size: 0.8em;
+  font-size: 0.75em;
   color: var(--fax-text-muted);
 }
 
 .bank-dialog-content .wallet-note {
-  margin: 8px 0 0 0;
-  font-size: 0.85em;
+  margin: 12px 0 0 0;
+  font-size: 0.8em;
   color: var(--fax-text-muted);
   font-style: italic;
+  text-align: center;
 }
 
 /* Accounts Section */
 .bank-dialog-content .accounts-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 }
 
 .bank-dialog-content .account-item {
-  background: var(--fax-bg-light);
+  background: var(--fax-bg-elevated);
   border: 1px solid var(--fax-border);
-  border-radius: 8px;
-  padding: 12px;
+  border-radius: 10px;
+  overflow: hidden;
 }
 
 .bank-dialog-content .account-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
-  padding-bottom: 8px;
+  padding: 12px 16px;
+  background: var(--fax-bg-surface);
   border-bottom: 1px solid var(--fax-border);
 }
 
@@ -635,85 +719,99 @@
 
 .bank-dialog-content .account-balance {
   color: var(--fax-success);
-  font-weight: bold;
+  font-weight: 700;
+  font-size: 0.95em;
 }
 
 .bank-dialog-content .account-actions {
+  padding: 14px 16px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
 .bank-dialog-content .action-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
 }
 
 .bank-dialog-content .action-row label {
-  width: 70px;
-  font-size: 0.9em;
-  color: var(--fax-text-muted);
+  width: 65px;
+  font-size: 0.85em;
+  font-weight: 500;
+  color: var(--fax-text-dim);
 }
 
 .bank-dialog-content .action-row select {
-  width: 70px;
-  padding: 6px;
-  background: var(--fax-bg);
+  width: 65px;
+  padding: 8px;
+  background: var(--fax-bg-deep);
   border: 1px solid var(--fax-border);
-  border-radius: 4px;
+  border-radius: 5px;
   color: var(--fax-text);
+  font-size: 0.85em;
 }
 
 .bank-dialog-content .action-row input {
   flex: 1;
-  min-width: 60px;
-  max-width: 100px;
-  padding: 6px;
-  background: var(--fax-bg);
+  min-width: 50px;
+  padding: 8px 10px;
+  background: var(--fax-bg-deep);
   border: 1px solid var(--fax-border);
-  border-radius: 4px;
+  border-radius: 5px;
   color: var(--fax-text);
+  font-size: 0.9em;
+}
+
+.bank-dialog-content .action-row input:focus,
+.bank-dialog-content .action-row select:focus {
+  outline: none;
+  border-color: var(--fax-gold);
 }
 
 .bank-dialog-content .deposit-btn,
 .bank-dialog-content .withdraw-btn {
-  padding: 6px 12px;
+  padding: 8px 14px;
   border: none;
-  border-radius: 4px;
+  border-radius: 5px;
   cursor: pointer;
-  font-size: 0.9em;
+  font-size: 0.85em;
+  font-weight: 600;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
+  transition: var(--fax-transition);
 }
 
 .bank-dialog-content .deposit-btn {
   background: var(--fax-success);
-  color: white;
+  color: #111;
 }
 
 .bank-dialog-content .deposit-btn:hover {
-  background: #16a34a;
+  background: #4ade80;
+  box-shadow: 0 0 12px rgba(62, 207, 142, 0.4);
 }
 
 .bank-dialog-content .withdraw-btn {
   background: var(--fax-warning);
-  color: black;
+  color: #111;
 }
 
 .bank-dialog-content .withdraw-btn:hover {
-  background: #d97706;
+  background: #fbbf24;
+  box-shadow: 0 0 12px rgba(240, 180, 41, 0.4);
 }
 
 .bank-dialog-content .no-accounts,
 .bank-dialog-content .no-banks {
   text-align: center;
   color: var(--fax-text-muted);
-  padding: 15px;
-  background: var(--fax-bg-light);
-  border-radius: 6px;
+  padding: 24px 16px;
+  background: var(--fax-bg-elevated);
+  border-radius: 8px;
+  border: 1px dashed var(--fax-border);
 }
 
 /* New Account Section */
@@ -725,139 +823,141 @@
 
 .bank-dialog-content .new-account-form select {
   flex: 1;
-  padding: 8px;
-  background: var(--fax-bg-light);
+  padding: 10px 12px;
+  background: var(--fax-bg-elevated);
   border: 1px solid var(--fax-border);
-  border-radius: 4px;
+  border-radius: 6px;
   color: var(--fax-text);
+  font-size: 0.9em;
 }
 
 .bank-dialog-content .open-account-btn {
-  padding: 8px 16px;
-  background: var(--fax-gold);
-  color: black;
+  padding: 10px 18px;
+  background: linear-gradient(135deg, var(--fax-gold) 0%, var(--fax-gold-dark) 100%);
+  color: #111;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
-  font-weight: bold;
+  font-weight: 700;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  transition: var(--fax-transition);
 }
 
 .bank-dialog-content .open-account-btn:hover {
-  background: var(--fax-gold-dark);
+  background: linear-gradient(135deg, var(--fax-gold-light) 0%, var(--fax-gold) 100%);
+  box-shadow: var(--fax-shadow-gold);
 }
 
 /* Footer */
 .bank-dialog-content .dialog-footer {
   text-align: center;
-  padding-top: 10px;
+  padding-top: 16px;
+  border-top: 1px solid var(--fax-border);
+  margin-top: 10px;
 }
 
 .bank-dialog-content .refresh-btn {
-  padding: 8px 20px;
-  background: var(--fax-secondary);
-  color: white;
-  border: none;
-  border-radius: 4px;
+  padding: 10px 24px;
+  background: var(--fax-bg-surface);
+  color: var(--fax-text);
+  border: 1px solid var(--fax-border);
+  border-radius: 6px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  transition: var(--fax-transition);
 }
 
 .bank-dialog-content .refresh-btn:hover {
-  background: #5b6271;
+  background: var(--fax-bg-hover);
+  border-color: var(--fax-border-light);
 }
 
 /* ========== TOKEN HUD ========== */
 
 .fax-bank-hud {
-  background: var(--fax-bg-light) !important;
-  border: 1px solid var(--fax-gold) !important;
+  background: var(--fax-bg-surface) !important;
+  border: 2px solid var(--fax-gold) !important;
+  border-radius: 4px !important;
+  transition: var(--fax-transition) !important;
 }
 
 .fax-bank-hud:hover {
-  background: var(--fax-primary) !important;
-}
-
-/* ========== BANK NPC BANNER ========== */
-
-.fax-bank-npc-banner {
-  background: linear-gradient(135deg, var(--fax-primary) 0%, var(--fax-bg-light) 100%);
-  padding: 12px;
-  text-align: center;
-  border-bottom: 2px solid var(--fax-gold);
-}
-
-.fax-bank-npc-banner .fax-bank-open-btn {
-  background: var(--fax-gold);
-  color: black;
-  border: none;
-  padding: 10px 25px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: bold;
-  font-size: 1.1em;
-}
-
-.fax-bank-npc-banner .fax-bank-open-btn:hover {
-  background: var(--fax-gold-dark);
+  background: var(--fax-gold) !important;
+  box-shadow: var(--fax-shadow-gold) !important;
 }
 
 /* ========== SETTINGS MENU ========== */
 
 .fax-bank-settings {
-  padding: 20px;
-  text-align: center;
+  padding: 24px;
+  background: var(--fax-bg);
+  color: var(--fax-text);
 }
 
 .fax-bank-settings h2 {
   color: var(--fax-gold);
-  margin-bottom: 20px;
+  font-size: 1.6em;
+  margin: 0 0 24px 0;
+  text-align: center;
+  font-weight: 700;
+  text-shadow: 0 0 20px var(--fax-gold-glow);
 }
 
 .fax-bank-settings .button-group {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-bottom: 20px;
+  gap: 12px;
+  margin-bottom: 24px;
 }
 
 .fax-bank-settings .fax-btn {
-  background: var(--fax-primary);
-  color: white;
-  border: none;
-  padding: 12px 20px;
-  border-radius: 4px;
+  background: var(--fax-bg-surface);
+  color: var(--fax-text);
+  border: 1px solid var(--fax-border);
+  padding: 14px 20px;
+  border-radius: 8px;
   cursor: pointer;
   font-size: 1em;
+  font-weight: 600;
+  transition: var(--fax-transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
 }
 
 .fax-bank-settings .fax-btn:hover {
-  background: var(--fax-primary-dark);
+  background: var(--fax-bg-hover);
+  border-color: var(--fax-border-light);
 }
 
 .fax-bank-settings .fax-btn.primary {
-  background: var(--fax-gold);
-  color: black;
+  background: linear-gradient(135deg, var(--fax-gold) 0%, var(--fax-gold-dark) 100%);
+  color: #111;
+  border: none;
 }
 
 .fax-bank-settings .fax-btn.primary:hover {
-  background: var(--fax-gold-dark);
+  background: linear-gradient(135deg, var(--fax-gold-light) 0%, var(--fax-gold) 100%);
+  box-shadow: var(--fax-shadow-gold);
 }
 
 .fax-bank-settings .help-text {
   text-align: left;
-  background: var(--fax-bg-light);
-  padding: 15px;
-  border-radius: 8px;
+  background: var(--fax-bg-elevated);
+  padding: 18px 20px;
+  border-radius: 10px;
+  border: 1px solid var(--fax-border);
 }
 
 .fax-bank-settings .help-text h3 {
-  margin: 0 0 10px 0;
+  margin: 0 0 14px 0;
   color: var(--fax-gold);
+  font-size: 1.05em;
 }
 
 .fax-bank-settings .help-text ul {
@@ -866,30 +966,92 @@
 }
 
 .fax-bank-settings .help-text li {
-  margin-bottom: 5px;
+  margin-bottom: 8px;
+  color: var(--fax-text-dim);
+}
+
+.fax-bank-settings .help-text strong {
+  color: var(--fax-text);
 }
 
 .fax-bank-settings .help-text code {
-  background: var(--fax-bg);
-  padding: 2px 6px;
-  border-radius: 3px;
-  font-family: monospace;
+  background: var(--fax-bg-deep);
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-family: "Fira Code", monospace;
+  font-size: 0.85em;
+  color: var(--fax-gold-light);
 }
 
 /* ========== CHAT HELP ========== */
 
 .fax-bank-help {
-  background: var(--fax-bg-light);
-  padding: 10px;
-  border-radius: 4px;
+  background: var(--fax-bg-elevated);
+  padding: 14px 16px;
+  border-radius: 8px;
   border-left: 3px solid var(--fax-gold);
 }
 
 .fax-bank-help h3 {
-  margin: 0 0 10px 0;
+  margin: 0 0 12px 0;
   color: var(--fax-gold);
+  font-size: 1.05em;
 }
 
 .fax-bank-help p {
-  margin: 5px 0;
+  margin: 6px 0;
+  color: var(--fax-text-dim);
+}
+
+.fax-bank-help code {
+  background: var(--fax-bg-deep);
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: "Fira Code", monospace;
+  font-size: 0.85em;
+  color: var(--fax-gold-light);
+}
+
+/* ========== GM DIALOG ========== */
+
+.fax-bank-gm-dialog {
+  text-align: center;
+  padding: 10px;
+}
+
+.fax-bank-gm-dialog p {
+  margin: 0 0 12px 0;
+}
+
+.fax-bank-gm-dialog select {
+  width: 100%;
+  padding: 10px;
+  background: var(--fax-bg-deep);
+  border: 1px solid var(--fax-border);
+  border-radius: 6px;
+  color: var(--fax-text);
+  font-size: 0.95em;
+}
+
+/* ========== SCROLLBAR ========== */
+
+.fax-bank-admin ::-webkit-scrollbar,
+.bank-dialog-content ::-webkit-scrollbar {
+  width: 8px;
+}
+
+.fax-bank-admin ::-webkit-scrollbar-track,
+.bank-dialog-content ::-webkit-scrollbar-track {
+  background: var(--fax-bg-deep);
+}
+
+.fax-bank-admin ::-webkit-scrollbar-thumb,
+.bank-dialog-content ::-webkit-scrollbar-thumb {
+  background: var(--fax-border);
+  border-radius: 4px;
+}
+
+.fax-bank-admin ::-webkit-scrollbar-thumb:hover,
+.bank-dialog-content ::-webkit-scrollbar-thumb:hover {
+  background: var(--fax-border-light);
 }
