@@ -140,10 +140,7 @@ export const getActorCurrency = (actor: ActorWithCurrency): CurrencyData => {
 /**
  * Get specific currency amount from actor
  */
-export const getActorCurrencyAmount = (
-  actor: ActorWithCurrency,
-  currency: string
-): number => {
+export const getActorCurrencyAmount = (actor: ActorWithCurrency, currency: string): number => {
   const currencyData = getActorCurrency(actor);
   return (currencyData[currency as keyof CurrencyData] as number) ?? 0;
 };
@@ -368,4 +365,3 @@ export const removeActorBankStatus = async (actor: ActorWithCurrency): Promise<b
     return false;
   }
 };
-

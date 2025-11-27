@@ -10,7 +10,12 @@ import { log } from "./utils/logger";
 import { AdminPanel } from "./applications/AdminPanel";
 import { BankDialog } from "./applications/BankDialog";
 import { initializeSocket } from "./systems/SocketManager";
-import { isActorBank, getActorBankData, isSystemSupported, getGameSystem } from "./systems/SystemCurrency";
+import {
+  isActorBank,
+  getActorBankData,
+  isSystemSupported,
+  getGameSystem,
+} from "./systems/SystemCurrency";
 
 // Types
 type GameType = {
@@ -119,7 +124,9 @@ Hooks.once("ready", () => {
 
   if (!supported) {
     const notifications = ui.notifications as NotificationsType | undefined;
-    notifications?.warn(`FAX-BANK: System "${system}" has limited support. Currency tracking may not work correctly.`);
+    notifications?.warn(
+      `FAX-BANK: System "${system}" has limited support. Currency tracking may not work correctly.`
+    );
   }
 
   // Initialize socket for multiplayer
@@ -204,11 +211,16 @@ Hooks.on("clickToken", (token: TokenType, controlled: boolean) => {
  * Double-click on token to interact with Bank NPC
  */
 Hooks.on("canvasReady", () => {
-  const canvasObj = canvas as {
-    stage?: {
-      on: (event: string, callback: (event: { target?: { actor?: ActorType } }) => void) => void;
-    };
-  } | undefined;
+  const canvasObj = canvas as
+    | {
+        stage?: {
+          on: (
+            event: string,
+            callback: (event: { target?: { actor?: ActorType } }) => void
+          ) => void;
+        };
+      }
+    | undefined;
 
   if (!canvasObj?.stage) return;
 
@@ -244,9 +256,11 @@ Hooks.on("renderActorSheet", (sheet: Application, html: JQuery, data: { actor?: 
     event.preventDefault();
 
     // Get the currently controlled token's actor (the player's character)
-    const canvasObj = canvas as {
-      tokens?: { controlled?: Array<{ actor?: ActorType }> };
-    } | undefined;
+    const canvasObj = canvas as
+      | {
+          tokens?: { controlled?: Array<{ actor?: ActorType }> };
+        }
+      | undefined;
     const playerToken = canvasObj?.tokens?.controlled?.[0];
 
     if (!playerToken?.actor?.id) {
@@ -267,44 +281,60 @@ Hooks.on("renderActorSheet", (sheet: Application, html: JQuery, data: { actor?: 
 /**
  * Add scene controls
  */
-Hooks.on("getSceneControlButtons", (controls: Array<{ name: string; tools?: Array<{ name: string; title: string; icon: string; button: boolean; onClick: () => void }> }>) => {
-  const gameObj = game as GameType | undefined;
-  const isGM = gameObj?.user?.isGM ?? false;
+Hooks.on(
+  "getSceneControlButtons",
+  (
+    controls: Array<{
+      name: string;
+      tools?: Array<{
+        name: string;
+        title: string;
+        icon: string;
+        button: boolean;
+        onClick: () => void;
+      }>;
+    }>
+  ) => {
+    const gameObj = game as GameType | undefined;
+    const isGM = gameObj?.user?.isGM ?? false;
 
-  // Find token controls
-  const tokenControls = controls.find((c) => c.name === "token");
-  if (!tokenControls) return;
+    // Find token controls
+    const tokenControls = controls.find((c) => c.name === "token");
+    if (!tokenControls) return;
 
-  if (!tokenControls.tools) {
-    tokenControls.tools = [];
+    if (!tokenControls.tools) {
+      tokenControls.tools = [];
+    }
+
+    // Add Admin Panel button (GM only)
+    if (isGM) {
+      tokenControls.tools.push({
+        name: "fax-bank-admin",
+        title: "FAX-BANK Admin",
+        icon: "fas fa-university",
+        button: true,
+        onClick: () => {
+          openAdminPanel();
+        },
+      });
+    }
   }
-
-  // Add Admin Panel button (GM only)
-  if (isGM) {
-    tokenControls.tools.push({
-      name: "fax-bank-admin",
-      title: "FAX-BANK Admin",
-      icon: "fas fa-university",
-      button: true,
-      onClick: () => {
-        openAdminPanel();
-      },
-    });
-  }
-});
+);
 
 /**
  * Chat command handler
  */
-Hooks.on("chatMessage", (_chatLog: unknown, message: string, _chatData: unknown): boolean | void => {
-  const trimmed = message.trim().toLowerCase();
+Hooks.on(
+  "chatMessage",
+  (_chatLog: unknown, message: string, _chatData: unknown): boolean | void => {
+    const trimmed = message.trim().toLowerCase();
 
-  if (trimmed === "/bank" || trimmed === "/bank help") {
-    const gameObj = game as GameType | undefined;
-    const notifications = ui.notifications as NotificationsType | undefined;
+    if (trimmed === "/bank" || trimmed === "/bank help") {
+      const gameObj = game as GameType | undefined;
+      const notifications = ui.notifications as NotificationsType | undefined;
 
-    // Show help
-    const helpText = `
+      // Show help
+      const helpText = `
       <div class="fax-bank-help">
         <h3>🏦 FAX-BANK Commands</h3>
         <p><strong>/bank</strong> - Show this help</p>
@@ -315,22 +345,23 @@ Hooks.on("chatMessage", (_chatLog: unknown, message: string, _chatData: unknown)
       </div>
     `;
 
-    notifications?.info("FAX-BANK: Check chat for commands");
+      notifications?.info("FAX-BANK: Check chat for commands");
 
-    // Post to chat
-    type ChatMessageImpl = {
-      create: (data: object) => Promise<unknown>;
-    };
-    const ChatMsg = ChatMessage as unknown as { implementation?: ChatMessageImpl };
-    if (ChatMsg.implementation?.create) {
-      void ChatMsg.implementation.create({
-        content: helpText,
-        whisper: gameObj?.user?.isGM ? [] : undefined,
-      });
+      // Post to chat
+      type ChatMessageImpl = {
+        create: (data: object) => Promise<unknown>;
+      };
+      const ChatMsg = ChatMessage as unknown as { implementation?: ChatMessageImpl };
+      if (ChatMsg.implementation?.create) {
+        void ChatMsg.implementation.create({
+          content: helpText,
+          whisper: gameObj?.user?.isGM ? [] : undefined,
+        });
+      }
+
+      return false; // Prevent default chat
     }
-
-    return false; // Prevent default chat
   }
-});
+);
 
 log("Module loaded");

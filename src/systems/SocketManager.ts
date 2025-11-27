@@ -184,20 +184,19 @@ const handleTransferRequest = async (payload: TransferRequestPayload): Promise<v
       ...payload,
       success: false,
       message: "Actor not found",
-    } as TransferCompletePayload);
+    } satisfies TransferCompletePayload);
     return;
   }
 
   // Check if sender has enough currency
-  const currentAmount =
-    (fromActor.system?.currency?.[payload.currency] as number | undefined) ?? 0;
+  const currentAmount = fromActor.system?.currency?.[payload.currency] ?? 0;
 
   if (currentAmount < payload.amount) {
     emitSocket(SOCKET_EVENTS.TRANSFER_COMPLETE, {
       ...payload,
       success: false,
       message: "Insufficient funds",
-    } as TransferCompletePayload);
+    } satisfies TransferCompletePayload);
     return;
   }
 
@@ -210,8 +209,7 @@ const handleTransferRequest = async (payload: TransferRequestPayload): Promise<v
     }
 
     // Add to recipient
-    const recipientAmount =
-      (toActor.system?.currency?.[payload.currency] as number | undefined) ?? 0;
+    const recipientAmount = toActor.system?.currency?.[payload.currency] ?? 0;
     if (toActor.update) {
       await toActor.update({
         [`system.currency.${payload.currency}`]: recipientAmount + payload.amount,
@@ -226,15 +224,17 @@ const handleTransferRequest = async (payload: TransferRequestPayload): Promise<v
       amount: payload.amount,
       success: true,
       message: `Transferred ${payload.amount} ${payload.currency}`,
-    } as TransferCompletePayload);
+    } satisfies TransferCompletePayload);
 
-    log(`Transfer complete: ${payload.amount} ${payload.currency} from ${fromActor.name ?? "?"} to ${toActor.name ?? "?"}`);
+    log(
+      `Transfer complete: ${payload.amount} ${payload.currency} from ${fromActor.name ?? "?"} to ${toActor.name ?? "?"}`
+    );
   } catch (error) {
     emitSocket(SOCKET_EVENTS.TRANSFER_COMPLETE, {
       ...payload,
       success: false,
       message: String(error),
-    } as TransferCompletePayload);
+    } satisfies TransferCompletePayload);
   }
 };
 
@@ -257,4 +257,3 @@ const handleTransferComplete = (payload: TransferCompletePayload): void => {
 export const syncBankData = (bankId: string, data: unknown): void => {
   emitSocket(SOCKET_EVENTS.BANK_SYNC, { bankId, data });
 };
-
