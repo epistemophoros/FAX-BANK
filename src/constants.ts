@@ -24,6 +24,7 @@ export const SETTINGS = {
 export const TEMPLATES = {
   ADMIN_PANEL: `modules/${MODULE_ID}/templates/admin-panel.hbs`,
   BANK_DIALOG: `modules/${MODULE_ID}/templates/bank-dialog.hbs`,
+  SETTINGS_MENU: `modules/${MODULE_ID}/templates/settings-menu.hbs`,
 } as const;
 
 /**

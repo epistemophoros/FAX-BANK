@@ -1,21 +1,25 @@
-<div class="fax-bank-settings-menu">
-  <div class="menu-header">
-    <h2><i class="fas fa-university"></i> FAX-BANK</h2>
-  </div>
-
-  <div class="menu-buttons">
+<div class="fax-bank-settings">
+  <h2>🏦 FAX-BANK</h2>
+  
+  <div class="button-group">
     {{#if isGM}}
-    <button type="button" id="fax-bank-open-admin" class="fax-bank-btn fax-bank-btn-primary">
-      <i class="fas fa-cogs"></i> Open Admin Panel
+    <button type="button" id="fax-bank-open-admin" class="fax-btn primary">
+      <i class="fas fa-cog"></i> Open Admin Panel
     </button>
     {{/if}}
-
-    <button type="button" id="fax-bank-open-bank" class="fax-bank-btn fax-bank-btn-secondary">
-      <i class="fas fa-wallet"></i> Open Bank (Selected Token)
+    
+    <button type="button" id="fax-bank-open-bank" class="fax-btn">
+      <i class="fas fa-university"></i> Open Bank (Select Token First)
     </button>
   </div>
-
-  <div class="menu-help">
-    <p><strong>Console:</strong> <code>FAXBANK.openAdmin()</code> or <code>FAXBANK.openBank()</code></p>
+  
+  <div class="help-text">
+    <h3>Quick Access</h3>
+    <ul>
+      <li><strong>Token HUD:</strong> Right-click token → Bank icon</li>
+      <li><strong>Bank NPCs:</strong> Open NPC sheet → "Open Bank" button</li>
+      <li><strong>Console:</strong> <code>FAXBANK.openAdmin()</code></li>
+      <li><strong>Chat:</strong> Type <code>/bank</code> for help</li>
+    </ul>
   </div>
 </div>
