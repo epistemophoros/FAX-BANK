@@ -31,26 +31,30 @@
   padding: 0;
 }
 
-/* Admin Panel */
+/* ========== ADMIN PANEL ========== */
+
 .fax-bank-admin {
   padding: 15px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .fax-bank-admin .admin-header {
   text-align: center;
-  margin-bottom: 20px;
-  padding-bottom: 15px;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
   border-bottom: 2px solid var(--fax-gold);
 }
 
 .fax-bank-admin .admin-header h2 {
-  margin: 0 0 10px 0;
+  margin: 0 0 5px 0;
   color: var(--fax-gold);
 }
 
 .fax-bank-admin .system-info {
   margin: 0;
-  font-size: 0.9em;
+  font-size: 0.85em;
   color: var(--fax-text-muted);
 }
 
@@ -62,14 +66,47 @@
   color: var(--fax-warning);
 }
 
-.fax-bank-admin .admin-section {
-  background: var(--fax-bg-light);
-  border-radius: 8px;
-  padding: 15px;
+/* Tab Navigation */
+.fax-bank-admin .admin-tabs {
+  display: flex;
+  gap: 5px;
   margin-bottom: 15px;
 }
 
-.fax-bank-admin .admin-section h3 {
+.fax-bank-admin .tab-btn {
+  flex: 1;
+  padding: 10px;
+  background: var(--fax-bg-light);
+  border: 1px solid var(--fax-border);
+  border-radius: 4px 4px 0 0;
+  color: var(--fax-text);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.fax-bank-admin .tab-btn:hover {
+  background: var(--fax-primary);
+}
+
+.fax-bank-admin .tab-btn.active {
+  background: var(--fax-gold);
+  color: black;
+  font-weight: bold;
+}
+
+/* Tab Content */
+.fax-bank-admin .admin-content {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.fax-bank-admin .tab-panel {
+  background: var(--fax-bg-light);
+  border-radius: 0 0 8px 8px;
+  padding: 15px;
+}
+
+.fax-bank-admin .tab-panel h3 {
   margin: 0 0 10px 0;
   color: var(--fax-gold);
   font-size: 1.1em;
@@ -81,6 +118,14 @@
   margin-bottom: 15px;
 }
 
+/* Forms */
+.fax-bank-admin .create-form {
+  background: var(--fax-bg);
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
 .fax-bank-admin .form-row {
   margin-bottom: 10px;
 }
@@ -89,74 +134,61 @@
   display: block;
   margin-bottom: 5px;
   color: var(--fax-text);
+  font-size: 0.9em;
 }
 
-.fax-bank-admin select,
-.fax-bank-admin input[type="text"] {
+.fax-bank-admin .form-row.inline {
+  display: flex;
+  gap: 8px;
+}
+
+.fax-bank-admin .form-row.inline input {
+  flex: 1;
+}
+
+.fax-bank-admin .form-group {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid var(--fax-border);
+}
+
+.fax-bank-admin .form-group h4 {
+  margin: 0 0 10px 0;
+  color: var(--fax-text);
+  font-size: 0.95em;
+}
+
+.fax-bank-admin input,
+.fax-bank-admin select {
   width: 100%;
   padding: 8px;
   border: 1px solid var(--fax-border);
   border-radius: 4px;
-  background: var(--fax-bg);
+  background: var(--fax-bg-light);
   color: var(--fax-text);
 }
 
-.fax-bank-admin .create-bank-btn,
-.fax-bank-admin .refresh-btn {
-  background: var(--fax-primary);
-  color: white;
+.fax-bank-admin input::placeholder {
+  color: var(--fax-text-muted);
+}
+
+/* Buttons */
+.fax-bank-admin .primary-btn {
+  background: var(--fax-gold);
+  color: black;
   border: none;
   padding: 10px 20px;
   border-radius: 4px;
   cursor: pointer;
+  font-weight: bold;
   margin-top: 10px;
 }
 
-.fax-bank-admin .create-bank-btn:hover,
-.fax-bank-admin .refresh-btn:hover {
-  background: var(--fax-primary-dark);
+.fax-bank-admin .primary-btn:hover {
+  background: #e5c04a;
 }
 
-/* Bank NPC List */
-.fax-bank-admin .bank-npc-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.fax-bank-admin .bank-npc-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px;
-  background: var(--fax-bg);
-  border-radius: 4px;
-  margin-bottom: 8px;
-}
-
-.fax-bank-admin .bank-npc-item .actor-img {
-  width: 40px;
-  height: 40px;
-  border-radius: 4px;
-  object-fit: cover;
-}
-
-.fax-bank-admin .bank-npc-item .bank-info {
-  flex: 1;
-}
-
-.fax-bank-admin .bank-npc-item .actor-name {
-  display: block;
-  font-weight: bold;
-}
-
-.fax-bank-admin .bank-npc-item .bank-name {
-  display: block;
-  font-size: 0.85em;
-  color: var(--fax-gold);
-}
-
-.fax-bank-admin .bank-npc-item .remove-bank-btn {
+.fax-bank-admin .danger-btn {
   background: var(--fax-error);
   color: white;
   border: none;
@@ -165,28 +197,186 @@
   cursor: pointer;
 }
 
+.fax-bank-admin .mini-btn {
+  background: var(--fax-primary);
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85em;
+}
+
+.fax-bank-admin .mini-btn:hover {
+  background: var(--fax-primary-dark);
+}
+
+/* Economy List */
+.fax-bank-admin .economy-list,
+.fax-bank-admin .bank-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.fax-bank-admin .economy-item,
+.fax-bank-admin .bank-item {
+  background: var(--fax-bg);
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 10px;
+}
+
+.fax-bank-admin .economy-header,
+.fax-bank-admin .bank-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.fax-bank-admin .economy-header strong,
+.fax-bank-admin .bank-header strong {
+  flex: 1;
+  color: var(--fax-gold);
+}
+
+.fax-bank-admin .economy-desc,
+.fax-bank-admin .bank-economy {
+  font-size: 0.85em;
+  color: var(--fax-text-muted);
+}
+
+/* Currencies */
+.fax-bank-admin .currencies {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--fax-border);
+}
+
+.fax-bank-admin .currencies h5 {
+  margin: 0 0 8px 0;
+  color: var(--fax-text);
+  font-size: 0.9em;
+}
+
+.fax-bank-admin .currency-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 10px 0;
+}
+
+.fax-bank-admin .currency-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px;
+  background: var(--fax-bg-light);
+  border-radius: 4px;
+  margin-bottom: 5px;
+  font-size: 0.9em;
+}
+
+.fax-bank-admin .currency-symbol {
+  font-size: 1.2em;
+}
+
+.fax-bank-admin .currency-name {
+  flex: 1;
+}
+
+.fax-bank-admin .currency-rate {
+  color: var(--fax-text-muted);
+  font-size: 0.85em;
+}
+
+.fax-bank-admin .base-badge {
+  background: var(--fax-gold);
+  color: black;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 0.75em;
+  font-weight: bold;
+}
+
+.fax-bank-admin .add-currency-form {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.fax-bank-admin .add-currency-form input {
+  flex: 1;
+  padding: 5px;
+  font-size: 0.85em;
+}
+
+/* Bank NPC Row */
+.fax-bank-admin .bank-npc-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.fax-bank-admin .bank-npc-row label {
+  font-size: 0.9em;
+}
+
+.fax-bank-admin .bank-npc-row select {
+  flex: 1;
+}
+
+/* Help Panel */
+.fax-bank-admin .help-panel .help-section {
+  background: var(--fax-bg);
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+
+.fax-bank-admin .help-panel h4 {
+  margin: 0 0 10px 0;
+  color: var(--fax-gold);
+}
+
+.fax-bank-admin .help-panel p {
+  margin: 0 0 5px 0;
+  font-size: 0.9em;
+}
+
+.fax-bank-admin .help-panel code {
+  background: var(--fax-bg-light);
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: monospace;
+}
+
+/* Empty State */
 .fax-bank-admin .empty-state {
   text-align: center;
   color: var(--fax-text-muted);
   padding: 20px;
 }
 
-.fax-bank-admin .help-list {
-  margin: 0;
-  padding-left: 20px;
-}
-
-.fax-bank-admin .help-list li {
-  margin-bottom: 8px;
-  font-size: 0.9em;
-}
-
+/* Footer */
 .fax-bank-admin .admin-footer {
   text-align: center;
-  padding-top: 10px;
+  padding-top: 15px;
+  margin-top: 15px;
+  border-top: 1px solid var(--fax-border);
 }
 
-/* Bank Dialog */
+.fax-bank-admin .refresh-btn {
+  background: var(--fax-secondary);
+  color: white;
+  border: none;
+  padding: 8px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+/* ========== BANK DIALOG ========== */
+
 .fax-bank-dialog {
   padding: 15px;
 }
@@ -283,10 +473,7 @@
   align-items: center;
 }
 
-.fax-bank-dialog .form-row.inline select {
-  flex: 1;
-}
-
+.fax-bank-dialog .form-row.inline select,
 .fax-bank-dialog .form-row.inline input {
   flex: 1;
 }
@@ -340,7 +527,8 @@
   text-align: center;
 }
 
-/* Token HUD Button */
+/* ========== TOKEN HUD ========== */
+
 .fax-bank-hud {
   background: var(--fax-bg-light);
   border: 1px solid var(--fax-gold);
@@ -350,7 +538,8 @@
   background: var(--fax-primary);
 }
 
-/* Bank NPC Banner (on actor sheet) */
+/* ========== BANK NPC BANNER ========== */
+
 .fax-bank-npc-banner {
   background: linear-gradient(135deg, var(--fax-primary) 0%, var(--fax-bg-light) 100%);
   padding: 10px;
@@ -373,7 +562,8 @@
   background: #e5c04a;
 }
 
-/* Settings Menu */
+/* ========== SETTINGS MENU ========== */
+
 .fax-bank-settings {
   padding: 20px;
   text-align: center;
@@ -442,7 +632,8 @@
   font-family: monospace;
 }
 
-/* Chat help */
+/* ========== CHAT HELP ========== */
+
 .fax-bank-help {
   background: var(--fax-bg-light);
   padding: 10px;

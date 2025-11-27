@@ -1,26 +1,29 @@
 /**
- * AdminPanel - GM interface for managing banks and Bank NPCs
+ * AdminPanel - Full GM interface for managing economies, currencies, banks, and NPCs
  */
 
 import { MODULE_ID } from "../constants";
 import { log } from "../utils/logger";
 import {
-  getGameSystem,
-  isSystemSupported,
-  isActorBank,
-  setActorAsBank,
-  removeActorBankStatus,
-  getActorBankData,
-} from "../systems/SystemCurrency";
+  getEconomies,
+  createEconomy,
+  deleteEconomy,
+  getBanks,
+  createBank,
+  deleteBank,
+  updateBank,
+  addCurrency,
+  removeCurrency,
+  type Economy,
+  type Bank,
+} from "../data/EconomyManager";
+import { getGameSystem, isSystemSupported } from "../systems/SystemCurrency";
 
 type ActorType = {
   id?: string;
   name?: string;
   img?: string;
   type?: string;
-  getFlag?: (module: string, key: string) => unknown;
-  setFlag?: (module: string, key: string, value: unknown) => Promise<unknown>;
-  unsetFlag?: (module: string, key: string) => Promise<unknown>;
 };
 
 type GameWithActors = {
@@ -39,63 +42,45 @@ type NotificationsType = {
   error: (msg: string) => void;
 };
 
-interface BankNPCData {
-  actorId: string;
-  actorName: string;
-  actorImg: string;
-  bankId: string;
-  bankName: string;
-}
-
 interface AdminPanelData {
   gameSystem: string;
   isSupported: boolean;
-  bankNPCs: BankNPCData[];
-  availableActors: Array<{ id: string; name: string; img: string; type: string }>;
+  economies: Economy[];
+  banks: Bank[];
+  availableActors: Array<{ id: string; name: string; type: string }>;
+  activeTab: string;
 }
 
 /**
- * Admin Panel for GMs to manage bank NPCs
+ * Admin Panel for GMs to manage the full economy system
  */
 export class AdminPanel extends Application {
+  private activeTab = "economies";
+
   static override get defaultOptions(): ApplicationOptions {
     return foundry.utils.mergeObject(super.defaultOptions, {
       id: "fax-bank-admin",
-      title: "🏦 FAX-BANK Admin",
+      title: "🏦 FAX-BANK Administration",
       template: `modules/${MODULE_ID}/templates/admin-panel.hbs`,
-      width: 550,
-      height: 500,
+      width: 700,
+      height: 600,
       classes: ["fax-bank", "admin-panel"],
       resizable: true,
+      tabs: [{ navSelector: ".tabs", contentSelector: ".content", initial: "economies" }],
     }) as ApplicationOptions;
   }
 
   override getData(): AdminPanelData {
     const gameObj = game as GameWithActors | undefined;
 
-    // Find all actors flagged as banks
-    const bankNPCs: BankNPCData[] = [];
-    const availableActors: Array<{ id: string; name: string; img: string; type: string }> = [];
-
+    // Get all actors for NPC assignment
+    const availableActors: Array<{ id: string; name: string; type: string }> = [];
     if (gameObj?.actors?.contents) {
       for (const actor of gameObj.actors.contents) {
-        if (!actor.id || !actor.name) continue;
-
-        if (isActorBank(actor)) {
-          const bankData = getActorBankData(actor);
-          bankNPCs.push({
-            actorId: actor.id,
-            actorName: actor.name,
-            actorImg: actor.img ?? "icons/svg/mystery-man.svg",
-            bankId: bankData?.bankId ?? actor.id,
-            bankName: bankData?.bankName ?? actor.name,
-          });
-        } else {
-          // Available to be set as bank (NPCs only typically)
+        if (actor.id && actor.name) {
           availableActors.push({
             id: actor.id,
             name: actor.name,
-            img: actor.img ?? "icons/svg/mystery-man.svg",
             type: actor.type ?? "unknown",
           });
         }
@@ -105,8 +90,10 @@ export class AdminPanel extends Application {
     return {
       gameSystem: getGameSystem(),
       isSupported: isSystemSupported(),
-      bankNPCs,
+      economies: getEconomies(),
+      banks: getBanks(),
       availableActors,
+      activeTab: this.activeTab,
     };
   }
 
@@ -114,33 +101,134 @@ export class AdminPanel extends Application {
     super.activateListeners(html);
 
     const notifications = ui.notifications as NotificationsType | undefined;
-    const gameObj = game as GameWithActors | undefined;
 
-    // Create Bank NPC button
-    html.find(".create-bank-btn").on("click", (event) => {
-      event.preventDefault();
-      const actorId = html.find("#bank-actor-select").val() as string;
-      const bankName = html.find("#bank-name-input").val() as string;
+    // Tab switching
+    html.find(".tab-btn").on("click", (event) => {
+      const tab = event.currentTarget.dataset.tab;
+      if (tab) {
+        this.activeTab = tab;
+        this.render();
+      }
+    });
 
-      if (!actorId) {
-        notifications?.warn("Select an actor to make a bank");
+    // ========== ECONOMY ACTIONS ==========
+
+    // Create economy
+    html.find("#create-economy-btn").on("click", () => {
+      const name = html.find("#economy-name").val() as string;
+      const description = html.find("#economy-description").val() as string;
+      const baseCurrencyName = html.find("#base-currency-name").val() as string;
+      const baseCurrencyAbbrev = html.find("#base-currency-abbrev").val() as string;
+      const baseCurrencySymbol = html.find("#base-currency-symbol").val() as string;
+
+      if (!name?.trim()) {
+        notifications?.warn("Enter an economy name");
         return;
       }
 
-      if (!bankName || bankName.trim() === "") {
+      if (!baseCurrencyName?.trim() || !baseCurrencyAbbrev?.trim()) {
+        notifications?.warn("Enter base currency details");
+        return;
+      }
+
+      void createEconomy(name.trim(), description?.trim() ?? "", {
+        name: baseCurrencyName.trim(),
+        abbrev: baseCurrencyAbbrev.trim(),
+        symbol: baseCurrencySymbol?.trim() ?? baseCurrencyAbbrev.trim(),
+      }).then(() => {
+        notifications?.info(`Created economy: ${name}`);
+        this.render();
+      });
+    });
+
+    // Delete economy
+    html.find(".delete-economy-btn").on("click", (event) => {
+      const economyId = event.currentTarget.dataset.economyId;
+      if (!economyId) return;
+
+      const economy = getEconomies().find((e) => e.id === economyId);
+      if (!economy) return;
+
+      if (
+        confirm(`Delete economy "${economy.name}"? This will also delete all banks and accounts!`)
+      ) {
+        void deleteEconomy(economyId).then(() => {
+          notifications?.info(`Deleted economy: ${economy.name}`);
+          this.render();
+        });
+      }
+    });
+
+    // Add currency to economy
+    html.find(".add-currency-btn").on("click", (event) => {
+      const economyId = event.currentTarget.dataset.economyId;
+      if (!economyId) return;
+
+      const row = html.find(`.economy-item[data-economy-id="${economyId}"]`);
+      const name = row.find(".new-currency-name").val() as string;
+      const abbrev = row.find(".new-currency-abbrev").val() as string;
+      const symbol = row.find(".new-currency-symbol").val() as string;
+      const baseValue = parseFloat(row.find(".new-currency-value").val() as string);
+
+      if (!name?.trim() || !abbrev?.trim() || isNaN(baseValue) || baseValue <= 0) {
+        notifications?.warn("Enter valid currency details and exchange rate");
+        return;
+      }
+
+      void addCurrency(
+        economyId,
+        name.trim(),
+        abbrev.trim(),
+        symbol?.trim() ?? abbrev.trim(),
+        baseValue
+      ).then((currency) => {
+        if (currency) {
+          notifications?.info(`Added currency: ${name}`);
+          this.render();
+        } else {
+          notifications?.error("Failed to add currency");
+        }
+      });
+    });
+
+    // Remove currency
+    html.find(".remove-currency-btn").on("click", (event) => {
+      const btn = event.currentTarget;
+      const economyId = btn.dataset.economyId;
+      const currencyId = btn.dataset.currencyId;
+      if (!economyId || !currencyId) return;
+
+      void removeCurrency(economyId, currencyId).then((success) => {
+        if (success) {
+          notifications?.info("Currency removed");
+          this.render();
+        } else {
+          notifications?.error("Cannot remove base currency");
+        }
+      });
+    });
+
+    // ========== BANK ACTIONS ==========
+
+    // Create bank
+    html.find("#create-bank-btn").on("click", () => {
+      const name = html.find("#bank-name").val() as string;
+      const economyId = html.find("#bank-economy").val() as string;
+      const npcActorId = html.find("#bank-npc").val() as string;
+
+      if (!name?.trim()) {
         notifications?.warn("Enter a bank name");
         return;
       }
 
-      const actor = gameObj?.actors?.get(actorId);
-      if (!actor) {
-        notifications?.error("Actor not found");
+      if (!economyId) {
+        notifications?.warn("Select an economy for the bank");
         return;
       }
 
-      void setActorAsBank(actor, actorId, bankName.trim()).then((success) => {
-        if (success) {
-          notifications?.info(`${actor.name ?? "Actor"} is now a bank: ${bankName}`);
+      void createBank(name.trim(), economyId, npcActorId || undefined).then((bank) => {
+        if (bank) {
+          notifications?.info(`Created bank: ${name}`);
           this.render();
         } else {
           notifications?.error("Failed to create bank");
@@ -148,30 +236,39 @@ export class AdminPanel extends Application {
       });
     });
 
-    // Remove Bank NPC buttons
-    html.find(".remove-bank-btn").on("click", (event) => {
-      event.preventDefault();
-      const actorId = event.currentTarget.dataset.actorId;
+    // Delete bank
+    html.find(".delete-bank-btn").on("click", (event) => {
+      const bankId = event.currentTarget.dataset.bankId;
+      if (!bankId) return;
 
-      if (!actorId) return;
+      const bank = getBanks().find((b) => b.id === bankId);
+      if (!bank) return;
 
-      const actor = gameObj?.actors?.get(actorId);
-      if (!actor) {
-        notifications?.error("Actor not found");
-        return;
-      }
-
-      void removeActorBankStatus(actor).then((success) => {
-        if (success) {
-          notifications?.info(`Removed bank status from ${actor.name ?? "actor"}`);
+      if (confirm(`Delete bank "${bank.name}"? This will delete all accounts!`)) {
+        void deleteBank(bankId).then(() => {
+          notifications?.info(`Deleted bank: ${bank.name}`);
           this.render();
-        } else {
-          notifications?.error("Failed to remove bank status");
+        });
+      }
+    });
+
+    // Assign NPC to bank
+    html.find(".assign-npc-btn").on("click", (event) => {
+      const bankId = event.currentTarget.dataset.bankId;
+      if (!bankId) return;
+
+      const row = html.find(`.bank-item[data-bank-id="${bankId}"]`);
+      const npcActorId = row.find(".bank-npc-select").val() as string;
+
+      void updateBank(bankId, { npcActorId: npcActorId || undefined }).then((success) => {
+        if (success) {
+          notifications?.info("Bank NPC updated");
+          this.render();
         }
       });
     });
 
-    // Refresh button
+    // Refresh
     html.find(".refresh-btn").on("click", () => {
       this.render();
     });

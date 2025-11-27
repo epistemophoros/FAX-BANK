@@ -1,294 +1,541 @@
 /**
- * EconomyManager - Manages economies and currencies
+ * EconomyManager - Manages economies, currencies, and banks
  */
 
-import type { Economy, Currency, ExchangeRate, ApiResponse, ID } from "../types";
-import { DND5E_CURRENCIES, PATHFINDER_CURRENCIES } from "../types";
-import { getDataStore, updateDataStore, generateId, now } from "./DataStore";
+import { MODULE_ID } from "../constants";
+import { log } from "../utils/logger";
+
+// Types
+export interface Currency {
+  id: string;
+  name: string;
+  abbrev: string;
+  symbol: string;
+  baseValue: number; // Value relative to base currency (1 = base)
+  isBase: boolean;
+}
+
+export interface Economy {
+  id: string;
+  name: string;
+  description: string;
+  currencies: Currency[];
+  baseCurrencyId: string;
+  interestRate: number; // Annual interest rate (0.05 = 5%)
+  createdAt: number;
+}
+
+export interface Bank {
+  id: string;
+  name: string;
+  economyId: string;
+  npcActorId?: string; // Actor assigned as bank NPC
+  interestRate: number; // Override economy rate, or -1 to use economy default
+  fees: {
+    withdrawal: number; // Percentage fee (0.01 = 1%)
+    transfer: number;
+    exchange: number;
+  };
+  createdAt: number;
+}
+
+export interface BankAccount {
+  id: string;
+  bankId: string;
+  ownerActorId: string;
+  ownerName: string;
+  balances: Record<string, number>; // currencyId -> amount
+  createdAt: number;
+}
+
+export interface Transaction {
+  id: string;
+  type: "deposit" | "withdrawal" | "transfer" | "exchange" | "interest";
+  accountId: string;
+  bankId: string;
+  currencyId: string;
+  amount: number;
+  fee: number;
+  targetAccountId?: string; // For transfers
+  targetCurrencyId?: string; // For exchanges
+  targetAmount?: number; // For exchanges
+  description: string;
+  timestamp: number;
+}
+
+// Data storage interface
+interface EconomyData {
+  economies: Economy[];
+  banks: Bank[];
+  accounts: BankAccount[];
+  transactions: Transaction[];
+}
+
+type GameWithSettings = {
+  settings?: {
+    get: (module: string, key: string) => unknown;
+    set: (module: string, key: string, value: unknown) => Promise<unknown>;
+    register: (module: string, key: string, data: object) => void;
+  };
+};
+
+const STORAGE_KEY = "economyData";
+
+// Default data
+const defaultData: EconomyData = {
+  economies: [],
+  banks: [],
+  accounts: [],
+  transactions: [],
+};
+
+/**
+ * Load economy data from settings
+ */
+export const loadEconomyData = (): EconomyData => {
+  const gameObj = game as GameWithSettings | undefined;
+  if (!gameObj?.settings) return { ...defaultData };
+
+  try {
+    const data = gameObj.settings.get(MODULE_ID, STORAGE_KEY) as EconomyData | undefined;
+    return data ?? { ...defaultData };
+  } catch {
+    return { ...defaultData };
+  }
+};
+
+/**
+ * Save economy data to settings
+ */
+export const saveEconomyData = async (data: EconomyData): Promise<void> => {
+  const gameObj = game as GameWithSettings | undefined;
+  if (!gameObj?.settings) return;
+
+  try {
+    await gameObj.settings.set(MODULE_ID, STORAGE_KEY, data);
+    log("Economy data saved");
+  } catch (error) {
+    log(`Failed to save economy data: ${String(error)}`);
+  }
+};
+
+/**
+ * Register the storage setting
+ */
+export const registerEconomyStorage = (): void => {
+  const gameObj = game as GameWithSettings | undefined;
+  if (!gameObj?.settings) return;
+
+  gameObj.settings.register(MODULE_ID, STORAGE_KEY, {
+    name: "Economy Data",
+    hint: "Internal storage for economy system",
+    scope: "world",
+    config: false,
+    type: Object,
+    default: defaultData,
+  });
+};
+
+// ============ ECONOMY FUNCTIONS ============
 
 /**
  * Create a new economy
  */
 export const createEconomy = async (
   name: string,
-  description = "",
-  interestRate = 0,
-  growthRate = 0
-): Promise<ApiResponse<Economy>> => {
-  const id = generateId();
-  const economy: Economy = {
-    id,
-    name,
-    description,
-    baseCurrencyId: null,
-    interestRate,
-    growthRate,
-    createdAt: now(),
-    updatedAt: now(),
+  description: string,
+  baseCurrency: { name: string; abbrev: string; symbol: string }
+): Promise<Economy> => {
+  const data = loadEconomyData();
+
+  const economyId = `eco_${Date.now()}`;
+  const currencyId = `cur_${Date.now()}`;
+
+  const currency: Currency = {
+    id: currencyId,
+    name: baseCurrency.name,
+    abbrev: baseCurrency.abbrev,
+    symbol: baseCurrency.symbol,
+    baseValue: 1,
+    isBase: true,
   };
 
-  await updateDataStore((store) => ({
-    ...store,
-    economies: { ...store.economies, [id]: economy },
-  }));
+  const economy: Economy = {
+    id: economyId,
+    name,
+    description,
+    currencies: [currency],
+    baseCurrencyId: currencyId,
+    interestRate: 0,
+    createdAt: Date.now(),
+  };
 
-  return { success: true, data: economy };
+  data.economies.push(economy);
+  await saveEconomyData(data);
+
+  log(`Created economy: ${name}`);
+  return economy;
 };
 
 /**
  * Get all economies
  */
 export const getEconomies = (): Economy[] => {
-  const store = getDataStore();
-  return Object.values(store.economies);
+  return loadEconomyData().economies;
 };
 
 /**
  * Get economy by ID
  */
-export const getEconomy = (id: ID): Economy | undefined => {
-  const store = getDataStore();
-  return store.economies[id];
+export const getEconomy = (economyId: string): Economy | undefined => {
+  return loadEconomyData().economies.find((e) => e.id === economyId);
 };
 
 /**
  * Update an economy
  */
 export const updateEconomy = async (
-  id: ID,
+  economyId: string,
   updates: Partial<Omit<Economy, "id" | "createdAt">>
-): Promise<ApiResponse<Economy>> => {
-  const store = getDataStore();
-  const economy = store.economies[id];
-  if (!economy) {
-    return { success: false, error: "Economy not found" };
-  }
+): Promise<boolean> => {
+  const data = loadEconomyData();
+  const index = data.economies.findIndex((e) => e.id === economyId);
 
-  const updated: Economy = {
-    ...economy,
-    ...updates,
-    updatedAt: now(),
-  };
+  if (index === -1) return false;
 
-  await updateDataStore((s) => ({
-    ...s,
-    economies: { ...s.economies, [id]: updated },
-  }));
+  data.economies[index] = { ...data.economies[index], ...updates };
+  await saveEconomyData(data);
 
-  return { success: true, data: updated };
+  log(`Updated economy: ${economyId}`);
+  return true;
 };
 
 /**
- * Delete an economy and all associated data
+ * Delete an economy (and all associated banks/accounts)
  */
-export const deleteEconomy = async (id: ID): Promise<ApiResponse> => {
-  const store = getDataStore();
-  if (!store.economies[id]) {
-    return { success: false, error: "Economy not found" };
-  }
+export const deleteEconomy = async (economyId: string): Promise<boolean> => {
+  const data = loadEconomyData();
 
-  await updateDataStore((s) => {
-    // Remove economy
-    const { [id]: _, ...economies } = s.economies;
+  // Remove economy
+  data.economies = data.economies.filter((e) => e.id !== economyId);
 
-    // Remove currencies in this economy
-    const currencies = Object.fromEntries(
-      Object.entries(s.currencies).filter(([, c]) => c.economyId !== id)
-    );
+  // Remove associated banks
+  const bankIds = data.banks.filter((b) => b.economyId === economyId).map((b) => b.id);
+  data.banks = data.banks.filter((b) => b.economyId !== economyId);
 
-    // Remove banks in this economy
-    const bankIds = Object.values(s.banks)
-      .filter((b) => b.economyId === id)
-      .map((b) => b.id);
-    const banks = Object.fromEntries(Object.entries(s.banks).filter(([, b]) => b.economyId !== id));
+  // Remove associated accounts
+  data.accounts = data.accounts.filter((a) => !bankIds.includes(a.bankId));
 
-    // Remove accounts in deleted banks
-    const accounts = Object.fromEntries(
-      Object.entries(s.accounts).filter(([, a]) => !bankIds.includes(a.bankId))
-    );
+  // Remove associated transactions
+  data.transactions = data.transactions.filter((t) => !bankIds.includes(t.bankId));
 
-    // Remove transactions for deleted accounts
-    const accountIds = Object.keys(accounts);
-    const transactions = s.transactions.filter((t) => accountIds.includes(t.accountId));
+  await saveEconomyData(data);
 
-    return { ...s, economies, currencies, banks, accounts, transactions };
-  });
-
-  return { success: true };
+  log(`Deleted economy: ${economyId}`);
+  return true;
 };
 
+// ============ CURRENCY FUNCTIONS ============
+
 /**
- * Create a new currency
+ * Add currency to an economy
  */
-export const createCurrency = async (
-  economyId: ID,
+export const addCurrency = async (
+  economyId: string,
   name: string,
-  abbreviation: string,
+  abbrev: string,
   symbol: string,
-  baseValue: number,
-  color = "#FFD700"
-): Promise<ApiResponse<Currency>> => {
-  const store = getDataStore();
-  if (!store.economies[economyId]) {
-    return { success: false, error: "Economy not found" };
-  }
+  baseValue: number
+): Promise<Currency | null> => {
+  const data = loadEconomyData();
+  const economy = data.economies.find((e) => e.id === economyId);
 
-  const id = generateId();
+  if (!economy) return null;
+
   const currency: Currency = {
-    id,
-    economyId,
+    id: `cur_${Date.now()}`,
     name,
-    abbreviation,
+    abbrev,
     symbol,
     baseValue,
-    color,
-    createdAt: now(),
+    isBase: false,
   };
 
-  await updateDataStore((s) => ({
-    ...s,
-    currencies: { ...s.currencies, [id]: currency },
-  }));
+  economy.currencies.push(currency);
+  await saveEconomyData(data);
 
-  // Set as base currency if this is the first currency or has baseValue of 1
-  if (baseValue === 1) {
-    await updateEconomy(economyId, { baseCurrencyId: id });
-  }
-
-  return { success: true, data: currency };
+  log(`Added currency ${name} to economy ${economyId}`);
+  return currency;
 };
 
 /**
- * Get currencies for an economy
+ * Update currency exchange rate
  */
-export const getCurrencies = (economyId?: ID): Currency[] => {
-  const store = getDataStore();
-  const currencies = Object.values(store.currencies);
-  if (economyId) {
-    return currencies.filter((c) => c.economyId === economyId);
-  }
-  return currencies;
+export const updateCurrency = async (
+  economyId: string,
+  currencyId: string,
+  updates: Partial<Omit<Currency, "id" | "isBase">>
+): Promise<boolean> => {
+  const data = loadEconomyData();
+  const economy = data.economies.find((e) => e.id === economyId);
+
+  if (!economy) return false;
+
+  const currency = economy.currencies.find((c) => c.id === currencyId);
+  if (!currency) return false;
+
+  Object.assign(currency, updates);
+  await saveEconomyData(data);
+
+  log(`Updated currency ${currencyId}`);
+  return true;
 };
 
 /**
- * Get currency by ID
+ * Remove currency from economy
  */
-export const getCurrency = (id: ID): Currency | undefined => {
-  const store = getDataStore();
-  return store.currencies[id];
+export const removeCurrency = async (economyId: string, currencyId: string): Promise<boolean> => {
+  const data = loadEconomyData();
+  const economy = data.economies.find((e) => e.id === economyId);
+
+  if (!economy) return false;
+
+  const currency = economy.currencies.find((c) => c.id === currencyId);
+  if (!currency || currency.isBase) return false; // Can't remove base currency
+
+  economy.currencies = economy.currencies.filter((c) => c.id !== currencyId);
+  await saveEconomyData(data);
+
+  log(`Removed currency ${currencyId} from economy ${economyId}`);
+  return true;
+};
+
+// ============ BANK FUNCTIONS ============
+
+/**
+ * Create a new bank
+ */
+export const createBank = async (
+  name: string,
+  economyId: string,
+  npcActorId?: string
+): Promise<Bank | null> => {
+  const data = loadEconomyData();
+
+  // Verify economy exists
+  if (!data.economies.find((e) => e.id === economyId)) return null;
+
+  const bank: Bank = {
+    id: `bank_${Date.now()}`,
+    name,
+    economyId,
+    npcActorId,
+    interestRate: -1, // Use economy default
+    fees: {
+      withdrawal: 0,
+      transfer: 0,
+      exchange: 0.02, // 2% exchange fee default
+    },
+    createdAt: Date.now(),
+  };
+
+  data.banks.push(bank);
+  await saveEconomyData(data);
+
+  log(`Created bank: ${name}`);
+  return bank;
 };
 
 /**
- * Delete a currency
+ * Get all banks
  */
-export const deleteCurrency = async (id: ID): Promise<ApiResponse> => {
-  const store = getDataStore();
-  if (!store.currencies[id]) {
-    return { success: false, error: "Currency not found" };
-  }
-
-  // Check if any accounts use this currency
-  const accountsUsing = Object.values(store.accounts).filter((a) => a.currencyId === id);
-  if (accountsUsing.length > 0) {
-    return { success: false, error: "Cannot delete currency: accounts exist using this currency" };
-  }
-
-  await updateDataStore((s) => {
-    const { [id]: _, ...currencies } = s.currencies;
-    return { ...s, currencies };
-  });
-
-  return { success: true };
+export const getBanks = (): Bank[] => {
+  return loadEconomyData().banks;
 };
 
 /**
- * Add D&D 5e currencies to an economy
+ * Get banks for an economy
  */
-export const addDnD5eCurrencies = async (economyId: ID): Promise<ApiResponse> => {
-  for (const c of DND5E_CURRENCIES) {
-    await createCurrency(economyId, c.name, c.abbreviation, c.symbol, c.baseValue, c.color);
-  }
-  return { success: true };
+export const getBanksByEconomy = (economyId: string): Bank[] => {
+  return loadEconomyData().banks.filter((b) => b.economyId === economyId);
 };
 
 /**
- * Add Pathfinder currencies to an economy
+ * Get bank by ID
  */
-export const addPathfinderCurrencies = async (economyId: ID): Promise<ApiResponse> => {
-  for (const c of PATHFINDER_CURRENCIES) {
-    await createCurrency(economyId, c.name, c.abbreviation, c.symbol, c.baseValue, c.color);
-  }
-  return { success: true };
+export const getBank = (bankId: string): Bank | undefined => {
+  return loadEconomyData().banks.find((b) => b.id === bankId);
 };
 
 /**
- * Calculate exchange rate between two currencies
+ * Get bank by NPC actor ID
  */
-export const getExchangeRate = (fromCurrencyId: ID, toCurrencyId: ID): number | null => {
-  const store = getDataStore();
-  const from = store.currencies[fromCurrencyId];
-  const to = store.currencies[toCurrencyId];
+export const getBankByNPC = (actorId: string): Bank | undefined => {
+  return loadEconomyData().banks.find((b) => b.npcActorId === actorId);
+};
 
-  if (!from || !to) return null;
+/**
+ * Update a bank
+ */
+export const updateBank = async (
+  bankId: string,
+  updates: Partial<Omit<Bank, "id" | "createdAt">>
+): Promise<boolean> => {
+  const data = loadEconomyData();
+  const index = data.banks.findIndex((b) => b.id === bankId);
 
-  // If same currency, rate is 1
-  if (fromCurrencyId === toCurrencyId) return 1;
+  if (index === -1) return false;
 
-  // Check for custom exchange rate
-  const customRate = store.exchangeRates.find(
-    (r) => r.fromCurrencyId === fromCurrencyId && r.toCurrencyId === toCurrencyId
+  data.banks[index] = { ...data.banks[index], ...updates };
+  await saveEconomyData(data);
+
+  log(`Updated bank: ${bankId}`);
+  return true;
+};
+
+/**
+ * Delete a bank
+ */
+export const deleteBank = async (bankId: string): Promise<boolean> => {
+  const data = loadEconomyData();
+
+  data.banks = data.banks.filter((b) => b.id !== bankId);
+  data.accounts = data.accounts.filter((a) => a.bankId !== bankId);
+  data.transactions = data.transactions.filter((t) => t.bankId !== bankId);
+
+  await saveEconomyData(data);
+
+  log(`Deleted bank: ${bankId}`);
+  return true;
+};
+
+// ============ ACCOUNT FUNCTIONS ============
+
+/**
+ * Create a bank account
+ */
+export const createAccount = async (
+  bankId: string,
+  ownerActorId: string,
+  ownerName: string
+): Promise<BankAccount | null> => {
+  const data = loadEconomyData();
+
+  const bank = data.banks.find((b) => b.id === bankId);
+  if (!bank) return null;
+
+  // Check if account already exists
+  const existing = data.accounts.find(
+    (a) => a.bankId === bankId && a.ownerActorId === ownerActorId
   );
-  if (customRate) return customRate.rate;
+  if (existing) return existing;
 
-  // Calculate based on base values (only works within same economy)
-  if (from.economyId === to.economyId) {
-    return from.baseValue / to.baseValue;
-  }
-
-  // Cross-economy exchange not supported without custom rate
-  return null;
-};
-
-/**
- * Set custom exchange rate
- */
-export const setExchangeRate = async (
-  fromCurrencyId: ID,
-  toCurrencyId: ID,
-  rate: number
-): Promise<ApiResponse<ExchangeRate>> => {
-  const store = getDataStore();
-  if (!store.currencies[fromCurrencyId] || !store.currencies[toCurrencyId]) {
-    return { success: false, error: "Currency not found" };
-  }
-
-  const exchangeRate: ExchangeRate = {
-    fromCurrencyId,
-    toCurrencyId,
-    rate,
-    updatedAt: now(),
+  const account: BankAccount = {
+    id: `acc_${Date.now()}`,
+    bankId,
+    ownerActorId,
+    ownerName,
+    balances: {},
+    createdAt: Date.now(),
   };
 
-  await updateDataStore((s) => {
-    // Remove existing rate if any
-    const rates = s.exchangeRates.filter(
-      (r) => !(r.fromCurrencyId === fromCurrencyId && r.toCurrencyId === toCurrencyId)
-    );
-    return { ...s, exchangeRates: [...rates, exchangeRate] };
-  });
+  data.accounts.push(account);
+  await saveEconomyData(data);
 
-  return { success: true, data: exchangeRate };
+  log(`Created account for ${ownerName} at bank ${bankId}`);
+  return account;
 };
 
 /**
- * Convert amount between currencies
+ * Get accounts for an actor
+ */
+export const getAccountsByOwner = (ownerActorId: string): BankAccount[] => {
+  return loadEconomyData().accounts.filter((a) => a.ownerActorId === ownerActorId);
+};
+
+/**
+ * Get accounts at a bank
+ */
+export const getAccountsByBank = (bankId: string): BankAccount[] => {
+  return loadEconomyData().accounts.filter((a) => a.bankId === bankId);
+};
+
+/**
+ * Get account by ID
+ */
+export const getAccount = (accountId: string): BankAccount | undefined => {
+  return loadEconomyData().accounts.find((a) => a.id === accountId);
+};
+
+/**
+ * Update account balance
+ */
+export const updateAccountBalance = async (
+  accountId: string,
+  currencyId: string,
+  amount: number,
+  type: Transaction["type"],
+  description: string
+): Promise<boolean> => {
+  const data = loadEconomyData();
+  const account = data.accounts.find((a) => a.id === accountId);
+
+  if (!account) return false;
+
+  const currentBalance = account.balances[currencyId] ?? 0;
+  const newBalance = currentBalance + amount;
+
+  if (newBalance < 0) return false; // Insufficient funds
+
+  account.balances[currencyId] = newBalance;
+
+  // Record transaction
+  const transaction: Transaction = {
+    id: `txn_${Date.now()}`,
+    type,
+    accountId,
+    bankId: account.bankId,
+    currencyId,
+    amount,
+    fee: 0,
+    description,
+    timestamp: Date.now(),
+  };
+
+  data.transactions.push(transaction);
+  await saveEconomyData(data);
+
+  log(`${type}: ${amount} ${currencyId} for account ${accountId}`);
+  return true;
+};
+
+// ============ TRANSACTION FUNCTIONS ============
+
+/**
+ * Get transactions for an account
+ */
+export const getTransactions = (accountId: string): Transaction[] => {
+  return loadEconomyData().transactions.filter((t) => t.accountId === accountId);
+};
+
+/**
+ * Convert currency using economy exchange rates
  */
 export const convertCurrency = (
-  amount: number,
-  fromCurrencyId: ID,
-  toCurrencyId: ID
-): number | null => {
-  const rate = getExchangeRate(fromCurrencyId, toCurrencyId);
-  if (rate === null) return null;
-  return amount * rate;
+  economyId: string,
+  fromCurrencyId: string,
+  toCurrencyId: string,
+  amount: number
+): number => {
+  const economy = getEconomy(economyId);
+  if (!economy) return 0;
+
+  const fromCurrency = economy.currencies.find((c) => c.id === fromCurrencyId);
+  const toCurrency = economy.currencies.find((c) => c.id === toCurrencyId);
+
+  if (!fromCurrency || !toCurrency) return 0;
+
+  // Convert to base value, then to target
+  const baseAmount = amount * fromCurrency.baseValue;
+  return baseAmount / toCurrency.baseValue;
 };
