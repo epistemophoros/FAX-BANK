@@ -43,7 +43,7 @@ type NotificationsType = {
 };
 
 // Store original method
-let originalOnClickLeft2: ((event: unknown) => unknown) | null = null;
+let originalOnClickLeft2: ((event: unknown) => void) | null = null;
 
 // Track open dialogs
 const bankDialogs: Map<string, BankDialog> = new Map();
@@ -218,7 +218,7 @@ Hooks.once("init", () => {
   // This runs before the actor sheet opens
   type TokenClass = {
     prototype: {
-      _onClickLeft2: (event: unknown) => unknown;
+      _onClickLeft2: (event: unknown) => void;
       actor?: ActorType;
     };
   };
@@ -228,7 +228,7 @@ Hooks.once("init", () => {
   if (TokenCls?.prototype?._onClickLeft2) {
     originalOnClickLeft2 = TokenCls.prototype._onClickLeft2;
 
-    TokenCls.prototype._onClickLeft2 = function (event: unknown): unknown {
+    TokenCls.prototype._onClickLeft2 = function (event: unknown): void {
       // Check if this token's actor is a Bank NPC
       const actor = this.actor;
       if (actor?.id) {
@@ -241,7 +241,7 @@ Hooks.once("init", () => {
 
       // Not a bank NPC - call original method
       if (originalOnClickLeft2) {
-        return originalOnClickLeft2.call(this, event);
+        originalOnClickLeft2.call(this, event);
       }
     };
 
