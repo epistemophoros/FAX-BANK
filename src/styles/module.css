@@ -51,7 +51,11 @@
 .fax-bank-admin,
 .bank-dialog,
 .fax-bank-settings {
-  font-family: "Modesto Condensed", "Signika", -apple-system, sans-serif;
+  font-family:
+    "Modesto Condensed",
+    "Signika",
+    -apple-system,
+    sans-serif;
   line-height: 1.5;
 }
 
