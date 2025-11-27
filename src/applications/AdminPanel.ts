@@ -1,5 +1,5 @@
 /**
- * AdminPanel - Full GM interface for managing economies, currencies, banks, and accounts
+ * AdminPanel - GM interface for managing economies, currencies, and banks
  */
 
 import { MODULE_ID } from "../constants";
@@ -52,12 +52,10 @@ interface AdminPanelData {
   banks: BanksWithEconomy[];
   accounts: AccountsWithBank[];
   availableActors: Array<{ id: string; name: string; type: string }>;
-  playerCharacters: Array<{ id: string; name: string; type: string }>;
   activeTab: string;
   showEconomies: boolean;
   showBanks: boolean;
   showAccounts: boolean;
-  showAccess: boolean;
   showHelp: boolean;
 }
 
@@ -74,18 +72,18 @@ interface AccountsWithBank extends BankAccount {
 }
 
 /**
- * Admin Panel for GMs to manage the full economy system
+ * Admin Panel for GMs
  */
 export class AdminPanel extends Application {
-  private activeTab = "access";
+  private activeTab = "banks";
 
   static override get defaultOptions(): ApplicationOptions {
     return foundry.utils.mergeObject(super.defaultOptions, {
       id: "fax-bank-admin",
       title: "🏦 FAX-BANK Administration",
       template: `modules/${MODULE_ID}/templates/admin-panel.hbs`,
-      width: 750,
-      height: 650,
+      width: 700,
+      height: 600,
       classes: ["fax-bank", "admin-panel"],
       resizable: true,
     }) as ApplicationOptions;
@@ -96,7 +94,6 @@ export class AdminPanel extends Application {
     const economies = getEconomies();
     const banks = getBanks();
 
-    // Get all actors for NPC assignment
     const availableActors: Array<{ id: string; name: string; type: string }> = [];
     if (gameObj?.actors?.contents) {
       for (const actor of gameObj.actors.contents) {
@@ -110,7 +107,6 @@ export class AdminPanel extends Application {
       }
     }
 
-    // Enrich banks with economy names and NPC names
     const banksWithEconomy: BanksWithEconomy[] = banks.map((bank) => {
       const economy = economies.find((e) => e.id === bank.economyId);
       const npc = bank.npcActorId
@@ -123,7 +119,6 @@ export class AdminPanel extends Application {
       };
     });
 
-    // Get all accounts with bank info
     const accountsWithBank: AccountsWithBank[] = [];
     for (const bank of banks) {
       const economy = economies.find((e) => e.id === bank.economyId);
@@ -147,9 +142,6 @@ export class AdminPanel extends Application {
       }
     }
 
-    // Get player characters for quick access
-    const playerCharacters = availableActors.filter((a) => a.type === "character");
-
     return {
       gameSystem: getGameSystem(),
       isSupported: isSystemSupported(),
@@ -157,12 +149,10 @@ export class AdminPanel extends Application {
       banks: banksWithEconomy,
       accounts: accountsWithBank,
       availableActors,
-      playerCharacters,
       activeTab: this.activeTab,
       showEconomies: this.activeTab === "economies",
       showBanks: this.activeTab === "banks",
       showAccounts: this.activeTab === "accounts",
-      showAccess: this.activeTab === "access",
       showHelp: this.activeTab === "help",
     };
   }
@@ -173,7 +163,7 @@ export class AdminPanel extends Application {
     const notifications = ui.notifications as NotificationsType | undefined;
     const gameObj = game as GameWithActors | undefined;
 
-    // Set selected NPC in dropdowns based on data attribute
+    // Set selected NPC in dropdowns
     html.find(".bank-item").each((_i, el) => {
       const npcActorId = el.dataset.npcActorId;
       if (npcActorId) {
@@ -192,7 +182,6 @@ export class AdminPanel extends Application {
 
     // ========== ECONOMY ACTIONS ==========
 
-    // Create economy
     html.find("#create-economy-btn").on("click", () => {
       const name = html.find("#economy-name").val() as string;
       const description = html.find("#economy-description").val() as string;
@@ -204,7 +193,6 @@ export class AdminPanel extends Application {
         notifications?.warn("Enter an economy name");
         return;
       }
-
       if (!baseCurrencyName?.trim() || !baseCurrencyAbbrev?.trim()) {
         notifications?.warn("Enter base currency details");
         return;
@@ -220,7 +208,6 @@ export class AdminPanel extends Application {
       });
     });
 
-    // Delete economy
     html.find(".delete-economy-btn").on("click", (event) => {
       const economyId = event.currentTarget.dataset.economyId;
       if (!economyId) return;
@@ -228,9 +215,7 @@ export class AdminPanel extends Application {
       const economy = getEconomies().find((e) => e.id === economyId);
       if (!economy) return;
 
-      if (
-        confirm(`Delete economy "${economy.name}"? This will also delete all banks and accounts!`)
-      ) {
+      if (confirm(`Delete economy "${economy.name}"? This deletes all banks and accounts!`)) {
         void deleteEconomy(economyId).then(() => {
           notifications?.info(`Deleted economy: ${economy.name}`);
           this.render();
@@ -238,7 +223,6 @@ export class AdminPanel extends Application {
       }
     });
 
-    // Add currency to economy
     html.find(".add-currency-btn").on("click", (event) => {
       const economyId = event.currentTarget.dataset.economyId;
       if (!economyId) return;
@@ -250,7 +234,7 @@ export class AdminPanel extends Application {
       const baseValue = parseFloat(row.find(".new-currency-value").val() as string);
 
       if (!name?.trim() || !abbrev?.trim() || isNaN(baseValue) || baseValue <= 0) {
-        notifications?.warn("Enter valid currency details and exchange rate");
+        notifications?.warn("Enter valid currency details");
         return;
       }
 
@@ -264,13 +248,10 @@ export class AdminPanel extends Application {
         if (currency) {
           notifications?.info(`Added currency: ${name}`);
           this.render();
-        } else {
-          notifications?.error("Failed to add currency");
         }
       });
     });
 
-    // Remove currency
     html.find(".remove-currency-btn").on("click", (event) => {
       const btn = event.currentTarget;
       const economyId = btn.dataset.economyId;
@@ -289,7 +270,6 @@ export class AdminPanel extends Application {
 
     // ========== BANK ACTIONS ==========
 
-    // Create bank
     html.find("#create-bank-btn").on("click", () => {
       const name = html.find("#bank-name").val() as string;
       const economyId = html.find("#bank-economy").val() as string;
@@ -299,23 +279,23 @@ export class AdminPanel extends Application {
         notifications?.warn("Enter a bank name");
         return;
       }
-
       if (!economyId) {
-        notifications?.warn("Select an economy for the bank");
+        notifications?.warn("Select an economy");
+        return;
+      }
+      if (!npcActorId) {
+        notifications?.warn("Select an NPC for the bank");
         return;
       }
 
-      void createBank(name.trim(), economyId, npcActorId || undefined).then((bank) => {
+      void createBank(name.trim(), economyId, npcActorId).then((bank) => {
         if (bank) {
           notifications?.info(`Created bank: ${name}`);
           this.render();
-        } else {
-          notifications?.error("Failed to create bank");
         }
       });
     });
 
-    // Delete bank
     html.find(".delete-bank-btn").on("click", (event) => {
       const bankId = event.currentTarget.dataset.bankId;
       if (!bankId) return;
@@ -323,7 +303,7 @@ export class AdminPanel extends Application {
       const bank = getBanks().find((b) => b.id === bankId);
       if (!bank) return;
 
-      if (confirm(`Delete bank "${bank.name}"? This will delete all accounts!`)) {
+      if (confirm(`Delete bank "${bank.name}"?`)) {
         void deleteBank(bankId).then(() => {
           notifications?.info(`Deleted bank: ${bank.name}`);
           this.render();
@@ -331,7 +311,6 @@ export class AdminPanel extends Application {
       }
     });
 
-    // Assign NPC to bank
     html.find(".assign-npc-btn").on("click", (event) => {
       const bankId = event.currentTarget.dataset.bankId;
       if (!bankId) return;
@@ -347,7 +326,6 @@ export class AdminPanel extends Application {
       });
     });
 
-    // Open actor sheet for NPC
     html.find(".view-npc-btn").on("click", (event) => {
       const actorId = event.currentTarget.dataset.actorId;
       if (!actorId) return;
@@ -359,30 +337,7 @@ export class AdminPanel extends Application {
       }
     });
 
-    // ========== QUICK ACCESS ==========
-
-    // Open bank for a character
-    html.find(".open-bank-btn").on("click", (event) => {
-      const actorId = event.currentTarget.dataset.actorId;
-      if (!actorId) return;
-
-      const actor = gameObj?.actors?.get(actorId);
-      if (actor?.id && actor?.name) {
-        // Import and open BankDialog
-        import("./BankDialog")
-          .then(({ BankDialog }) => {
-            new BankDialog(actor.id ?? "", actor.name ?? "Unknown").render(true);
-          })
-          .catch(() => {
-            notifications?.error("Failed to open bank");
-          });
-      }
-    });
-
-    // Refresh
-    html.find(".refresh-btn").on("click", () => {
-      this.render();
-    });
+    html.find(".refresh-btn").on("click", () => this.render());
 
     log("AdminPanel listeners activated");
   }
