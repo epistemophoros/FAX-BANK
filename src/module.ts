@@ -11,14 +11,21 @@ import { AdminPanel } from "./applications/AdminPanel";
 import { BankDialog } from "./applications/BankDialog";
 import { initializeSocket } from "./systems/SocketManager";
 import { isSystemSupported, getGameSystem } from "./systems/SystemCurrency";
-import { registerEconomyStorage, getBankByNPC } from "./data/EconomyManager";
+import { registerEconomyStorage, getBankByNPC, getBanks } from "./data/EconomyManager";
 
 // Types
 type GameType = {
   modules?: Map<string, { api?: Record<string, unknown> }>;
-  user?: { isGM?: boolean };
+  user?: {
+    isGM?: boolean;
+    character?: ActorType;
+  };
+  users?: {
+    contents?: Array<{ character?: ActorType; name?: string }>;
+  };
   actors?: {
     get: (id: string) => ActorType | undefined;
+    contents?: ActorType[];
   };
   i18n?: {
     localize: (key: string) => string;
@@ -29,19 +36,9 @@ type ActorType = {
   id?: string;
   name?: string;
   img?: string;
+  type?: string;
   sheet?: { render: (force: boolean) => void };
   getFlag?: (module: string, key: string) => unknown;
-};
-
-type TokenDocType = {
-  actor?: ActorType;
-  actorId?: string;
-};
-
-type TokenType = {
-  id?: string;
-  document?: TokenDocType;
-  actor?: ActorType;
 };
 
 type NotificationsType = {
@@ -97,13 +94,58 @@ const openAdminPanel = (): void => {
 };
 
 /**
- * Show GM choice dialog for bank NPC
+ * Show GM bank dialog with player selection
  */
-const showGMBankChoice = (bankName: string, npcActor: ActorType, playerActor: ActorType): void => {
+const showGMBankDialog = (bankName: string, npcActor: ActorType): void => {
+  const gameObj = game as GameType | undefined;
+
+  // Get all player characters
+  const playerCharacters: Array<{ id: string; name: string; playerName: string }> = [];
+
+  if (gameObj?.users?.contents) {
+    for (const user of gameObj.users.contents) {
+      if (user.character?.id && user.character?.name) {
+        playerCharacters.push({
+          id: user.character.id,
+          name: user.character.name,
+          playerName: user.name ?? "Unknown",
+        });
+      }
+    }
+  }
+
+  // Also add any other characters from actors list that aren't assigned
+  if (gameObj?.actors?.contents) {
+    for (const actor of gameObj.actors.contents) {
+      if (
+        actor.id &&
+        actor.name &&
+        actor.type === "character" &&
+        !playerCharacters.find((p) => p.id === actor.id)
+      ) {
+        playerCharacters.push({
+          id: actor.id,
+          name: actor.name,
+          playerName: "(Unassigned)",
+        });
+      }
+    }
+  }
+
+  // Build dropdown options
+  const options = playerCharacters
+    .map((p) => `<option value="${p.id}">${p.name} - ${p.playerName}</option>`)
+    .join("");
+
   const content = `
-    <div style="text-align: center; padding: 10px;">
-      <p style="margin-bottom: 15px;">What would you like to do with <strong>${npcActor.name}</strong>?</p>
-      <p style="color: #d4af37; font-size: 0.9em;">Bank: ${bankName}</p>
+    <div style="padding: 10px;">
+      <p style="margin-bottom: 10px;">Select a character to open bank for:</p>
+      <select id="fax-bank-character-select" style="width: 100%; padding: 8px; margin-bottom: 15px;">
+        <option value="">-- Select Character --</option>
+        ${options}
+      </select>
+      <hr style="margin: 15px 0; border-color: #404060;">
+      <p style="font-size: 0.9em; color: #9ca3af;">Or manage the NPC directly:</p>
     </div>
   `;
 
@@ -114,8 +156,17 @@ const showGMBankChoice = (bankName: string, npcActor: ActorType, playerActor: Ac
       bank: {
         icon: '<i class="fas fa-university"></i>',
         label: "Open Bank",
-        callback: (): void => {
-          openBankForActor(playerActor);
+        callback: (html: JQuery): void => {
+          const actorId = html.find("#fax-bank-character-select").val() as string;
+          if (!actorId) {
+            const notifications = ui.notifications as NotificationsType | undefined;
+            notifications?.warn("Select a character first");
+            return;
+          }
+          const actor = gameObj?.actors?.get(actorId);
+          if (actor) {
+            openBankForActor(actor);
+          }
         },
       },
       sheet: {
@@ -135,68 +186,25 @@ const showGMBankChoice = (bankName: string, npcActor: ActorType, playerActor: Ac
 };
 
 /**
- * Handle interaction with a Bank NPC token
+ * Handle Bank NPC interaction for players
  */
-const handleBankNPCInteraction = (npcActor: ActorType): void => {
-  if (!npcActor.id) return;
-
-  const bank = getBankByNPC(npcActor.id);
-  if (!bank) return; // Not a bank NPC
-
+const handlePlayerBankInteraction = (bankName: string): void => {
   const gameObj = game as GameType | undefined;
   const notifications = ui.notifications as NotificationsType | undefined;
 
-  // Get the player's controlled token/actor
-  const canvasObj = canvas as
-    | {
-        tokens?: { controlled?: Array<{ actor?: ActorType }> };
-      }
-    | undefined;
+  // Get the player's assigned character
+  const playerCharacter = gameObj?.user?.character;
 
-  // For players: need to have a token selected
-  // For GM: can use any controlled token or just open for the NPC itself
-  const playerToken = canvasObj?.tokens?.controlled?.find((t) => t.actor?.id !== npcActor.id);
-  const playerActor = playerToken?.actor;
-
-  if (gameObj?.user?.isGM) {
-    // GM gets a choice dialog
-    if (playerActor?.id) {
-      showGMBankChoice(bank.name, npcActor, playerActor);
-    } else {
-      // No player token selected, just open NPC sheet or show message
-      new Dialog({
-        title: `🏦 ${bank.name}`,
-        content: `
-          <div style="text-align: center; padding: 10px;">
-            <p>No player token selected.</p>
-            <p style="font-size: 0.9em; color: #9ca3af;">Select a player token first to open the bank for them, or open the NPC sheet.</p>
-          </div>
-        `,
-        buttons: {
-          sheet: {
-            icon: '<i class="fas fa-user"></i>',
-            label: "Open NPC Sheet",
-            callback: (): void => {
-              npcActor.sheet?.render(true);
-            },
-          },
-          cancel: {
-            icon: '<i class="fas fa-times"></i>',
-            label: "Cancel",
-          },
-        },
-        default: "sheet",
-      }).render(true);
-    }
-  } else {
-    // Player: open bank directly
-    if (!playerActor?.id) {
-      notifications?.warn("Select your character token first, then click on the bank NPC");
-      return;
-    }
-
-    openBankForActor(playerActor);
+  if (!playerCharacter?.id) {
+    notifications?.warn(
+      "You don't have a character assigned. Ask your GM to assign you a character."
+    );
+    return;
   }
+
+  // Open bank for the player's character
+  notifications?.info(`Opening ${bankName} for ${playerCharacter.name ?? "your character"}...`);
+  openBankForActor(playerCharacter);
 };
 
 /**
@@ -269,13 +277,46 @@ Hooks.once("ready", () => {
         console.log("Usage: FAXBANK.openBank('actorId')");
       }
     },
+    listBanks: (): void => {
+      const banks = getBanks();
+      // eslint-disable-next-line no-console
+      console.table(banks.map((b) => ({ name: b.name, id: b.id, npcId: b.npcActorId })));
+    },
   };
 
-  log("API exposed: FAXBANK.openAdmin(), FAXBANK.openBank(actorId)");
+  log("API exposed: FAXBANK.openAdmin(), FAXBANK.openBank(actorId), FAXBANK.listBanks()");
 });
 
 /**
- * Add Token HUD button
+ * Intercept actor sheet opening for Bank NPCs
+ * Players: Block sheet, open bank instead
+ * GMs: Show choice dialog
+ */
+Hooks.on(
+  "preOpenActorSheet",
+  (actor: ActorType, _options: unknown, _userId: string): boolean | void => {
+    if (!actor?.id) return;
+
+    // Check if this actor is a Bank NPC
+    const bank = getBankByNPC(actor.id);
+    if (!bank) return; // Not a bank NPC, allow normal behavior
+
+    const gameObj = game as GameType | undefined;
+
+    if (gameObj?.user?.isGM) {
+      // GM: Show choice dialog
+      showGMBankDialog(bank.name, actor);
+      return false; // Prevent default sheet open
+    } else {
+      // Player: Open bank directly
+      handlePlayerBankInteraction(bank.name);
+      return false; // Prevent default sheet open
+    }
+  }
+);
+
+/**
+ * Add Token HUD button for players to access their own bank
  */
 Hooks.on("renderTokenHUD", (_hud: Application, html: JQuery, data: { actorId?: string }) => {
   const showHudButton = getSetting<boolean>("enableFeature");
@@ -287,6 +328,13 @@ Hooks.on("renderTokenHUD", (_hud: Application, html: JQuery, data: { actorId?: s
   const gameObj = game as GameType | undefined;
   const actor = gameObj?.actors?.get(actorId);
   if (!actor) return;
+
+  // Only show on player's own tokens (not NPC tokens)
+  // GMs see it on all tokens
+  const isGM = gameObj?.user?.isGM ?? false;
+  const isOwnCharacter = gameObj?.user?.character?.id === actorId;
+
+  if (!isGM && !isOwnCharacter) return;
 
   // Create bank button
   const button = $(`
@@ -305,74 +353,6 @@ Hooks.on("renderTokenHUD", (_hud: Application, html: JQuery, data: { actorId?: s
   html.find(".col.right").append(button);
 
   log("Added bank button to Token HUD");
-});
-
-/**
- * Handle double-click on tokens - Bank NPC interaction
- * Players double-click bank NPC to open bank
- * GMs get a choice dialog
- */
-Hooks.on("controlToken", (token: TokenType, controlled: boolean) => {
-  // Only trigger on gaining control (not releasing)
-  if (!controlled) return;
-
-  const actor = token.actor ?? token.document?.actor;
-  if (!actor?.id) return;
-
-  // Check if this is a bank NPC
-  const bank = getBankByNPC(actor.id);
-  if (!bank) return; // Not a bank NPC, normal behavior
-
-  // This is a bank NPC - handle the interaction
-  // Use a small delay to let the normal selection happen first
-  setTimeout(() => {
-    handleBankNPCInteraction(actor);
-  }, 100);
-});
-
-/**
- * Alternative: Double-click handler for bank NPCs
- */
-Hooks.on("canvasReady", () => {
-  const canvasObj = canvas as
-    | {
-        stage?: {
-          on: (
-            event: string,
-            callback: (event: { data?: { originalEvent?: MouseEvent } }) => void
-          ) => void;
-        };
-        tokens?: {
-          placeables?: TokenType[];
-          controlled?: TokenType[];
-        };
-      }
-    | undefined;
-
-  if (!canvasObj?.stage) return;
-
-  // Listen for double-clicks on canvas
-  canvasObj.stage.on("dblclick", (event) => {
-    // Get clicked position
-    const originalEvent = event.data?.originalEvent;
-    if (!originalEvent) return;
-
-    // Find if we double-clicked a token
-    const tokens = canvasObj.tokens?.placeables ?? [];
-    for (const token of tokens) {
-      const actor = token.actor ?? token.document?.actor;
-      if (!actor?.id) continue;
-
-      // Check if this actor is a bank NPC
-      const bank = getBankByNPC(actor.id);
-      if (bank) {
-        handleBankNPCInteraction(actor);
-        break;
-      }
-    }
-  });
-
-  log("Canvas ready - Bank NPC double-click handler active");
 });
 
 /**
@@ -436,9 +416,9 @@ Hooks.on(
         <h3>🏦 FAX-BANK Commands</h3>
         <p><strong>/bank</strong> - Show this help</p>
         <p><strong>Token HUD</strong> - Right-click your token, click bank icon</p>
-        <p><strong>Bank NPCs</strong> - Click on a Bank NPC token to open bank</p>
-        <p><strong>Console</strong> - FAXBANK.openAdmin() or FAXBANK.openBank(actorId)</p>
-        ${gameObj?.user?.isGM ? "<p><strong>Admin</strong> - Token Controls sidebar → Bank icon</p>" : ""}
+        <p><strong>Bank NPCs</strong> - Double-click a Bank NPC token to access bank</p>
+        <p><strong>Console</strong> - FAXBANK.openBank(actorId)</p>
+        ${gameObj?.user?.isGM ? "<p><strong>Admin</strong> - Token Controls → Bank icon</p>" : ""}
       </div>
     `;
 
@@ -457,6 +437,21 @@ Hooks.on(
       }
 
       return false; // Prevent default chat
+    }
+
+    // Quick bank open for players
+    if (trimmed === "/bank open") {
+      const gameObj = game as GameType | undefined;
+      const playerCharacter = gameObj?.user?.character;
+
+      if (playerCharacter?.id) {
+        openBankForActor(playerCharacter);
+      } else {
+        const notifications = ui.notifications as NotificationsType | undefined;
+        notifications?.warn("You don't have a character assigned");
+      }
+
+      return false;
     }
   }
 );
