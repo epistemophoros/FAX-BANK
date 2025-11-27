@@ -16,7 +16,6 @@ import {
   removeCurrency,
   type Economy,
   type Bank,
-  type Currency,
 } from "../data/EconomyManager";
 import { getGameSystem, isSystemSupported } from "../systems/SystemCurrency";
 
@@ -105,7 +104,7 @@ export class AdminPanel extends Application {
 
     // Tab switching
     html.find(".tab-btn").on("click", (event) => {
-      const tab = (event.currentTarget as HTMLElement).dataset.tab;
+      const tab = event.currentTarget.dataset.tab;
       if (tab) {
         this.activeTab = tab;
         this.render();
@@ -144,14 +143,15 @@ export class AdminPanel extends Application {
 
     // Delete economy
     html.find(".delete-economy-btn").on("click", (event) => {
-      const economyId = (event.currentTarget as HTMLElement).dataset.economyId;
+      const economyId = event.currentTarget.dataset.economyId;
       if (!economyId) return;
 
-      // Confirm deletion
       const economy = getEconomies().find((e) => e.id === economyId);
       if (!economy) return;
 
-      if (confirm(`Delete economy "${economy.name}"? This will also delete all banks and accounts!`)) {
+      if (
+        confirm(`Delete economy "${economy.name}"? This will also delete all banks and accounts!`)
+      ) {
         void deleteEconomy(economyId).then(() => {
           notifications?.info(`Deleted economy: ${economy.name}`);
           this.render();
@@ -161,7 +161,7 @@ export class AdminPanel extends Application {
 
     // Add currency to economy
     html.find(".add-currency-btn").on("click", (event) => {
-      const economyId = (event.currentTarget as HTMLElement).dataset.economyId;
+      const economyId = event.currentTarget.dataset.economyId;
       if (!economyId) return;
 
       const row = html.find(`.economy-item[data-economy-id="${economyId}"]`);
@@ -175,21 +175,25 @@ export class AdminPanel extends Application {
         return;
       }
 
-      void addCurrency(economyId, name.trim(), abbrev.trim(), symbol?.trim() ?? abbrev.trim(), baseValue).then(
-        (currency) => {
-          if (currency) {
-            notifications?.info(`Added currency: ${name}`);
-            this.render();
-          } else {
-            notifications?.error("Failed to add currency");
-          }
+      void addCurrency(
+        economyId,
+        name.trim(),
+        abbrev.trim(),
+        symbol?.trim() ?? abbrev.trim(),
+        baseValue
+      ).then((currency) => {
+        if (currency) {
+          notifications?.info(`Added currency: ${name}`);
+          this.render();
+        } else {
+          notifications?.error("Failed to add currency");
         }
-      );
+      });
     });
 
     // Remove currency
     html.find(".remove-currency-btn").on("click", (event) => {
-      const btn = event.currentTarget as HTMLElement;
+      const btn = event.currentTarget;
       const economyId = btn.dataset.economyId;
       const currencyId = btn.dataset.currencyId;
       if (!economyId || !currencyId) return;
@@ -234,7 +238,7 @@ export class AdminPanel extends Application {
 
     // Delete bank
     html.find(".delete-bank-btn").on("click", (event) => {
-      const bankId = (event.currentTarget as HTMLElement).dataset.bankId;
+      const bankId = event.currentTarget.dataset.bankId;
       if (!bankId) return;
 
       const bank = getBanks().find((b) => b.id === bankId);
@@ -250,7 +254,7 @@ export class AdminPanel extends Application {
 
     // Assign NPC to bank
     html.find(".assign-npc-btn").on("click", (event) => {
-      const bankId = (event.currentTarget as HTMLElement).dataset.bankId;
+      const bankId = event.currentTarget.dataset.bankId;
       if (!bankId) return;
 
       const row = html.find(`.bank-item[data-bank-id="${bankId}"]`);
