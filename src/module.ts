@@ -42,6 +42,9 @@ type NotificationsType = {
   error: (msg: string) => void;
 };
 
+// Store original method
+let originalOnClickLeft2: ((event: unknown) => void) | null = null;
+
 // Track open dialogs
 const bankDialogs: Map<string, BankDialog> = new Map();
 let adminPanel: AdminPanel | null = null;
@@ -169,11 +172,12 @@ const showGMBankDialog = (bankName: string, npcActor: ActorType): void => {
 };
 
 /**
- * Handle Bank NPC - called when trying to interact with a Bank NPC
+ * Handle Bank NPC interaction
+ * Returns true if handled (is a bank NPC), false otherwise
  */
 const handleBankNPC = (actorId: string): boolean => {
   const bank = getBankByNPC(actorId);
-  if (!bank) return false; // Not a bank NPC
+  if (!bank) return false;
 
   const gameObj = game as GameType | undefined;
   const notifications = ui.notifications as NotificationsType | undefined;
@@ -181,25 +185,25 @@ const handleBankNPC = (actorId: string): boolean => {
 
   if (!actor) return false;
 
+  log(`Bank NPC interaction: ${bank.name}`);
+
   if (gameObj?.user?.isGM) {
-    // GM gets selection dialog
     showGMBankDialog(bank.name, actor);
   } else {
-    // Player gets their bank opened
     const playerCharacter = gameObj?.user?.character;
     if (!playerCharacter?.id) {
       notifications?.warn("You don't have a character assigned. Ask your GM.");
-      return true; // Still handled, just show warning
+      return true;
     }
     notifications?.info(`Opening ${bank.name}...`);
     openBankForActor(playerCharacter);
   }
 
-  return true; // Handled
+  return true;
 };
 
 /**
- * Module initialization
+ * Module initialization - wrap Token click method
  */
 Hooks.once("init", () => {
   log(`Initializing ${MODULE_NAME}`);
@@ -209,6 +213,42 @@ Hooks.once("init", () => {
   loadTemplates(Object.values(TEMPLATES)).catch((err: unknown) => {
     log(`Failed to load templates: ${String(err)}`);
   });
+
+  // Wrap Token._onClickLeft2 to intercept double-clicks on Bank NPCs
+  // This runs before the actor sheet opens
+  type TokenClass = {
+    prototype: {
+      _onClickLeft2: (event: unknown) => void;
+      actor?: ActorType;
+    };
+  };
+
+  const TokenCls = Token as unknown as TokenClass;
+
+  if (TokenCls?.prototype?._onClickLeft2) {
+    originalOnClickLeft2 = TokenCls.prototype._onClickLeft2;
+
+    TokenCls.prototype._onClickLeft2 = function (event: unknown): void {
+      // Check if this token's actor is a Bank NPC
+      const actor = this.actor;
+      if (actor?.id) {
+        const handled = handleBankNPC(actor.id);
+        if (handled) {
+          log("Bank NPC click intercepted - preventing actor sheet");
+          return; // Don't open actor sheet
+        }
+      }
+
+      // Not a bank NPC - call original method
+      if (originalOnClickLeft2) {
+        originalOnClickLeft2.call(this, event);
+      }
+    };
+
+    log("Token._onClickLeft2 wrapped successfully");
+  } else {
+    log("WARNING: Could not wrap Token._onClickLeft2");
+  }
 
   log("Init complete");
 });
@@ -262,33 +302,6 @@ Hooks.once("ready", () => {
 });
 
 /**
- * Intercept actor sheet rendering - if it's a Bank NPC, close and open bank instead
- */
-Hooks.on(
-  "renderActorSheet",
-  (
-    sheet: Application & { actor?: ActorType; close?: () => Promise<void> },
-    _html: JQuery,
-    _data: unknown
-  ) => {
-    const actor = sheet.actor;
-    if (!actor?.id) return;
-
-    // Check if this is a Bank NPC
-    const bank = getBankByNPC(actor.id);
-    if (!bank) return; // Not a bank, allow normal sheet
-
-    // Close the sheet
-    if (sheet.close) {
-      void sheet.close();
-    }
-
-    // Handle bank interaction
-    handleBankNPC(actor.id);
-  }
-);
-
-/**
  * Scene controls - Admin button for GM
  */
 Hooks.on(
@@ -336,7 +349,7 @@ Hooks.on(
       <div class="fax-bank-help">
         <h3>🏦 FAX-BANK</h3>
         <p><strong>/bank open</strong> - Open your bank</p>
-        <p><strong>Double-click</strong> a Bank NPC to access bank</p>
+        <p><strong>Double-click</strong> a Bank NPC token to access bank</p>
         ${gameObj?.user?.isGM ? "<p><strong>GM:</strong> Token Controls → Bank icon</p>" : ""}
       </div>
     `;
